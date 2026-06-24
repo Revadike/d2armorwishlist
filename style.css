@@ -400,3 +400,8 @@ td {
 .subtext-value {
     color: var(--text-main);
 }
+
+tr.row-disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}

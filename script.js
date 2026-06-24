@@ -413,6 +413,11 @@ const toggleStat = (key, statType, stat) => {
         if (pref.primary.length === 0) pref.secondary = [];
     }
 
+    if (statType === 'primary' || statType === 'secondary') {
+        const disabledTerts = getDisabledTertiaryStats(pref);
+        pref.tertiary = pref.tertiary.filter(s => !disabledTerts.has(s));
+    }
+
     // Auto-check want if not already wanted
     if (!pref.wanted) {
         pref.wanted = true;
@@ -492,6 +497,11 @@ const createStatButton = (stat, type, pref, key) => {
             const valid = new Set();
             pref.primary.forEach(p => VALID_SECONDARIES[p].forEach(vs => valid.add(vs)));
             if (!valid.has(stat)) isDisabled = true;
+        }
+    }
+    if (type === 'tertiary') {
+        if (getDisabledTertiaryStats(pref).has(stat)) {
+            isDisabled = true;
         }
     }
 
@@ -654,6 +664,10 @@ const createTableRow = (row, available2pcsSets) => {
     const is2pcs = row.pcsNum === '2';
     const want4pcs = state.prefs[`${row.exactName}_4`] && state.prefs[`${row.exactName}_4`].wanted;
 
+    if (is2pcs && want4pcs) {
+        tr.classList.add('row-disabled');
+    }
+
     const setCell = document.createElement('td');
     setCell.className = 'col-set';
     const setTitle = document.createElement('strong');
@@ -783,6 +797,38 @@ const renderTable = () => {
     sorted.forEach(row => {
         tbody.appendChild(createTableRow(row, available2pcsSets));
     });
+};
+
+/**
+ * Compute the set of tertiary stats that are disabled for a given pref.
+ * A stat is disabled only if every active archetype pair forbids it.
+ * @param {object} pref - Preference object
+ * @returns {Set<string>} Disabled tertiary stat names
+ */
+const getDisabledTertiaryStats = (pref) => {
+    if (pref.primary.length === 0) return new Set();
+
+    const pairs = [];
+    if (pref.secondary.length === 0) {
+        pref.primary.forEach(p => {
+            VALID_SECONDARIES[p].forEach(s => pairs.push([p, s]));
+        });
+    } else {
+        pref.primary.forEach(p => {
+            pref.secondary.forEach(s => {
+                if (ARCHETYPES[`${p}_${s}`]) pairs.push([p, s]);
+            });
+        });
+    }
+
+    if (pairs.length === 0) return new Set();
+
+    let disabled = new Set([pairs[0][0], pairs[0][1]]);
+    for (let i = 1; i < pairs.length; i++) {
+        const forbidden = new Set([pairs[i][0], pairs[i][1]]);
+        disabled = new Set([...disabled].filter(s => forbidden.has(s)));
+    }
+    return disabled;
 };
 
 /**
