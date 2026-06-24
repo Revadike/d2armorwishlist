@@ -365,6 +365,13 @@ const toggleWanted = (key) => {
     const pref = state.prefs[key];
     pref.wanted = !pref.wanted;
 
+    // Reset stats to default when unchecking want
+    if (!pref.wanted) {
+        pref.primary = [];
+        pref.secondary = [];
+        pref.tertiary = [...STATS];
+    }
+
     const [exactName, pcs] = key.split('_');
 
     if (pcs === '4' && pref.wanted) {
@@ -404,6 +411,11 @@ const toggleStat = (key, statType, stat) => {
         pref.primary.forEach(p => VALID_SECONDARIES[p].forEach(s => validUnion.add(s)));
         pref.secondary = pref.secondary.filter(s => validUnion.has(s));
         if (pref.primary.length === 0) pref.secondary = [];
+    }
+
+    // Auto-check want if not already wanted
+    if (!pref.wanted) {
+        pref.wanted = true;
     }
 
     saveAndRender();
