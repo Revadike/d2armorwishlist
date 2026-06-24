@@ -1,36 +1,36 @@
 "INFO 🖼️","#","Set","Season","Bonus","Pcs","Tags","Trigger","Effect","ANALYSIS Description","Rank","Tier"
-"","","Oryx's Memory
-King's Fall","29","Iron Sharpens Iron","2","ammo","elite+ kill","grants 2-8x special ammo progress and 3-6x heavy ammo progress","currently bugged and producing much more ammo than intended; unknown where ranking will be post-patch","1","S"
 "","","TM Custom
-Spire of the Watcher","29","High Noon","4","damage","precision damage within ?s of weapon ready","7% damage for 3s (doubled for Tex weapons)","best-in-class damage booster set bonus, irreplaceable effect","2","S"
+Spire of the Watcher","29","High Noon","4","damage","precision damage within ?s of weapon ready","7% damage for 3s (doubled for Tex weapons)","best-in-class damage booster set bonus, irreplaceable effect","1","S"
 "","","Exodus Down
-Nessus","29","Repurposed Charge","4","survivability","gaining, losing, or spending Armor Charge","13% / 21% / 30% (up to 35%) DR, start/extensions are 3s per stack, 5? HP heal and starts crit health regen","probably most consistent build-agnostic survivability set bonus in the game","3","S"
+Nessus","29","Repurposed Charge","4","survivability","gaining, losing, or spending Armor Charge","13% / 21% / 30% (up to 35%) DR, start/extensions are 3s per stack, 5? HP heal and starts crit health regen","probably most consistent build-agnostic survivability set bonus in the game","2","S"
 "","","Promised
 Salvation's Edge","29","Stable Resonance","2","survivability
-damage","elite+ kill","25% DR and 7% damage for 12s, refreshable","excellent global DR for a 2pc., a little reliant on elite+ presence but very strong if applicable","4","S"
+damage","elite+ kill","25% DR and 7% damage for 12s, refreshable","excellent global DR for a 2pc., a little reliant on elite+ presence but very strong if applicable","3","S"
 "","","Atheon's Memory
-Vault of Glass","29","Collective Power","4","damage","5 damage instances within 5s with subclass buff active","Orb of Power at feet (5s ICD)","exclusive effect, great for extra super, Still Hunt, Argent mod facilitation, essentially Attrition Orbs without any setup","5","S"
-"","","Oryx's Memory
-King's Fall","29","Ascendant Escape","4","survivability","critical health after elite+ kill","invisibility for 6-8s, no ICD","viability depends on how strong 2pc. is post-patch, but instant tracking break and invis when needed is very helpful","6","S"
+Vault of Glass","29","Collective Power","4","damage","5 damage instances within 5s with subclass buff active","Orb of Power at feet (5s ICD)","exclusive effect, great for extra super, Still Hunt, Argent mod facilitation, essentially Attrition Orbs without any setup","4","S"
 "","","CODA
 Prophecy","29","So Very Thin","4","ability
 survivability","Light weapon kills
 Dark or kinetic weapon kills
 alternating weapon kills within ?s","?% grenade energy
 ?% melee energy
-40% DR for 5s, refreshable on kill","easily the most consistent source of high DR if able to play around swapping polarities, excellent chunk gains too","7","S"
+40% DR for 5s, refreshable on kill","easily the most consistent source of high DR if able to play around swapping polarities, excellent chunk gains too","5","S"
 "","9","Smoke Jumper
-Solo/Fireteam Ops","27","Ride Together, Die Together","2","survivability","orb pickup","40% DR decaying for 3s","excellent pairing with Attrition Orbs / triple arm orb gen mod setups, a little build-dependent but solid regardless","8","A"
+Solo/Fireteam Ops","27","Ride Together, Die Together","2","survivability","orb pickup","40% DR decaying for 3s","excellent pairing with Attrition Orbs / triple arm orb gen mod setups, a little build-dependent but solid regardless","6","A"
 "","","Legacy's Oath
-Deep Stone Crypt","29","Augmented Servos","2","splash","powered melee kill","9m disorienting pulse","probably best melee-focused set bonus in the game, effective DR from blind, constantly reprocable","9","A"
+Deep Stone Crypt","29","Augmented Servos","2","splash","powered melee kill","9m disorienting pulse","probably best melee-focused set bonus in the game, effective DR from blind, constantly reprocable","7","A"
+"","","Oryx's Memory
+King's Fall","29","Iron Sharpens Iron","2","ammo","elite+ kill","additive ~12% special ammo progress, ~8% heavy ammo progress","still pretty solid post-nerf in elite-heavy encounters, just not overpowered","8","A"
 "","","Nezarec's Nightmare
 Root of Nightmares","29","Dream-Devourer","4","survivability","elite+ finisher
 Devour","Devour
-20% DR","good for controllable environments for getting Devour on non-Devour subclasses, otherwise DR isn't that high","10","A"
+20% DR","good for controllable environments for getting Devour on non-Devour subclasses, otherwise DR isn't that high","9","A"
 "","","Pantheos Resplendent
 Pantheon","29","Well Prepared","2","ability","ammo pickup
 Armor Charge (6 stacks)","Armor Charge
-10 Health per stack","enables infinite special finishers with Curative Orbs, works with Stacks on Stacks","11","A"
+10 Health per stack","enables infinite special finishers with Curative Orbs, works with Stacks on Stacks","10","A"
+"","","Oryx's Memory
+King's Fall","29","Ascendant Escape","4","survivability","critical health after elite+ kill","invisibility for 6-8s, no ICD","viability depends on how strong 2pc. is post-patch, but instant tracking break and invis when needed is very helpful","11","A"
 "","","Deep Explorer
 Duality","29","Bittersweet","4","survivability","weapon stow","35 / 65 / 87.5 / 105 / 130 / 170 / 195 / full HP per stack","in practice, a very large amount of healing uptime as long as you play around swapping weapons, have to forgo DR","12","A"
 "","3","AION Adapter
@@ -181,12 +181,12 @@ Prophecy","29","Between Poles","2","stats","Light weapon kills (5 stacks)
 Dark or kinetic weapon kills (5 stacks)
 Polarity change removes stacks","8 Grenade per stack for 10s
 8 Melee per stack for 10s","most grenade/melee builds already invest into high stat, not really worth spending set bonus to do so","73","D"
-"","","First Ascent
-Pale Heart","29","Stack 'Em Up","2","ability","kills of different elements (5 stacks)","?% Transcendence gains per stack for 24s, cannot refresh at 5 stacks","currently bugged and gives no Transcendence Energy gains; not particularly useful either way","74","D"
 "","","Kentarch 3
-Garden of Salvation","29","Network Upload","4","ability","weapon kills","?% melee energy to allies within ?m","basically just gives you Pugilist as a 4pc. set bonus","75","D"
+Garden of Salvation","29","Network Upload","4","ability","weapon kills","?% melee energy to allies within ?m","basically just gives you Pugilist as a 4pc. set bonus","74","D"
 "","","Pantheos Resplendent
-Pantheon","29","Down the Line","4","damage","damaging miniboss+ enemies (10 stacks, 1s ICD, any damage)","15% damage to minor/elites, 1-2 stacks (minor/elite) removed on kill (1s window?)","reverse Redirection, 15% not that much and definitely an odd choice for a 4pc.","76","D"
+Pantheon","29","Down the Line","4","damage","damaging miniboss+ enemies (10 stacks, 1s ICD, any damage)","15% damage to minor/elites, 1-2 stacks (minor/elite) removed on kill (1s window?)","reverse Redirection, 15% not that much and definitely an odd choice for a 4pc.","75","D"
+"","","First Ascent
+Pale Heart","29","Stack 'Em Up","2","ability","kills of different elements (5 stacks)","1.2% Transcendence gains per stack for 24s, cannot refresh at 5 stacks","results in 15-20% Transcendence progress if requirements are fulfilled, gains do not progress further at 5 stacks","76","D"
 "","","Thriving Survivor
 Lawless Frontier","28","Room Clearing","4","stats
 ammo","3 heat or primary weapon kills with 4s between each","40 Grenade, 40 Weapon, 40 ammo gen for heat/primary weapons for 10s","pretty solid stat bonuses, kill spree requirements are not the worst, held back by low impact 2pc.","77","D"
