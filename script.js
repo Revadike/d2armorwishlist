@@ -282,19 +282,63 @@ const optimizeSlots = () => {
         }
     }
 
+    // Count overlapping pieces between every declared "combine with" pair under a
+    // given assignment. Each combine edge is scored once for whichever side(s)
+    // declared it; lower total overlap is better.
+    const scoreAssignment = (assignment) => {
+        let score = 0;
+        for (let key of targetSets) {
+            state.prefs[key].combineWith.forEach(c => {
+                if (!c.startsWith('exotic_') && assignment[c]) {
+                    score += assignment[key].filter(s => assignment[c].includes(s)).length;
+                }
+            });
+        }
+        return score;
+    };
+
+    // The exhaustive search is the product of each set's choice count (up to 10
+    // combos each), which explodes for many simultaneous 2pc-only sets and would
+    // freeze the UI. Cap the work and fall back to a greedy assignment when the
+    // search space is too large.
+    const MAX_SEARCH = 200000;
+    let searchSpace = 1;
+    for (let key of targetSets) {
+        searchSpace *= choices[key].length;
+        if (searchSpace > MAX_SEARCH) break;
+    }
+
+    if (searchSpace > MAX_SEARCH) {
+        // Greedy: assign sets in order, each picking the choice that minimizes
+        // overlap with already-assigned combine partners.
+        const greedy = {};
+        for (let key of targetSets) {
+            let bestChoice = choices[key][0];
+            let bestLocal = Infinity;
+            for (let choice of choices[key]) {
+                let local = 0;
+                state.prefs[key].combineWith.forEach(c => {
+                    if (!c.startsWith('exotic_') && greedy[c]) {
+                        local += choice.filter(s => greedy[c].includes(s)).length;
+                    }
+                });
+                if (local < bestLocal) {
+                    bestLocal = local;
+                    bestChoice = choice;
+                }
+            }
+            greedy[key] = bestChoice;
+        }
+        slotAssignments = greedy;
+        return;
+    }
+
     let bestScore = Infinity;
     let bestAssignment = {};
 
     const search = (index, currentAssignment) => {
         if (index === targetSets.length) {
-            let score = 0;
-            for (let key of targetSets) {
-                state.prefs[key].combineWith.forEach(c => {
-                    if (!c.startsWith('exotic_') && currentAssignment[c]) {
-                        score += currentAssignment[key].filter(s => currentAssignment[c].includes(s)).length;
-                    }
-                });
-            }
+            const score = scoreAssignment(currentAssignment);
             if (score < bestScore) {
                 bestScore = score;
                 bestAssignment = { ...currentAssignment };
@@ -378,6 +422,16 @@ const addCombine = (key, selectElement) => {
     if (!pref.combineWith.includes(val)) {
         pref.combineWith.push(val);
     }
+
+    // Set-to-set combines are mutual: if A combines with 2pc set B, B should also
+    // combine with A. Exotics are not sets, so they stay one-directional.
+    if (!val.startsWith('exotic_') && state.prefs[val]) {
+        const partner = state.prefs[val];
+        if (!partner.combineWith.includes(key)) {
+            partner.combineWith.push(key);
+        }
+    }
+
     selectElement.value = '';
     saveAndRender();
 };
@@ -390,6 +444,12 @@ const addCombine = (key, selectElement) => {
 const removeCombine = (key, val) => {
     const pref = state.prefs[key];
     pref.combineWith = pref.combineWith.filter(v => v !== val);
+
+    // Mirror removal for mutual set-to-set combines.
+    if (!val.startsWith('exotic_') && state.prefs[val]) {
+        state.prefs[val].combineWith = state.prefs[val].combineWith.filter(v => v !== key);
+    }
+
     saveAndRender();
 };
 
@@ -760,13 +820,22 @@ const getQueryForTertiary = (pref) => {
 const updateQueries = () => {
     const rowQueries = [];
 
+    const validKeys = new Set(rawData.map(r => r.key));
+
     for (let key in state.prefs) {
         const pref = state.prefs[key];
         if (!pref.wanted) continue;
+        if (!validKeys.has(key)) continue;
 
         const exactName = key.split('_')[0];
         const is2pcs = key.endsWith('_2');
         const want4pcs = state.prefs[`${exactName}_4`] && state.prefs[`${exactName}_4`].wanted;
+
+        // When the 4pc is wanted, all 5 pieces of the set are kept and the 4pc
+        // row already emits an unrestricted exactperk term covering the whole set.
+        // Emitting the auto-wanted 2pc row too would add a redundant term with its
+        // own (often empty) stat filters, nullifying the 4pc's stat restrictions.
+        if (is2pcs && want4pcs) continue;
 
         const parts = [`exactperk:"${exactName}"`];
 
