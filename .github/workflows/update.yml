@@ -1,0 +1,27 @@
+name: Update Google Sheet CSV
+
+on:
+  schedule:
+    - cron: "0 3 * * *"  # once per day (3 AM UTC)
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Fetch CSV
+        run: |
+          curl -L "https://docs.google.com/spreadsheets/d/1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY/gviz/tq?tqx=out:csv&sheet=Set+Bonuses" \
+          -o data.csv
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data.csv
+          git commit -m "update csv" || echo "no changes"
+          git push

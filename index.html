@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Armor Set Wishlist</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+      :root {
+        --bg-color: #0b0f19;
+        --panel-bg: #151b2b;
+        --border-color: #2a3441;
+        --accent-color: #4db8ff;
+        --accent-hover: #1a8ad6;
+        --text-main: #e2e8f0;
+        --text-muted: #94a3b8;
+        --danger: #ef4444;
+        --success: #22c55e;
+
+        /* State Colors */
+        --state-primary: var(--accent-color);
+        --state-secondary: #1e293b;
+        --state-secondary-border: #334155;
+        --state-disabled-bg: #0f172a;
+        --state-disabled-text: #475569;
+      }
+
+      body {
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 10px 20px;
+        box-sizing: border-box;
+        font-size: 14px;
+      }
+
+      h1 {
+        text-align: center;
+        color: var(--accent-color);
+        margin: 0 0 15px 0;
+        font-weight: 300;
+        font-size: 1.6em;
+      }
+
+      .container {
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      /* Top Controls - Compacted */
+      .top-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: stretch;
+        gap: 15px;
+        margin-bottom: 15px;
+        background: var(--panel-bg);
+        padding: 12px 15px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .global-opts {
+        flex: 0 0 180px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        justify-content: center;
+      }
+
+      .query-outputs {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .query-box {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .label-group {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        width: 130px;
+        flex-shrink: 0;
+      }
+
+      .label-group label {
+        font-weight: bold;
+        color: var(--accent-color);
+        font-size: 0.85em;
+      }
+
+      .label-group .subtext {
+        margin: 2px 0 0 0;
+        font-size: 0.75em;
+      }
+
+      .textarea-container {
+        position: relative;
+        flex: 1;
+        display: flex;
+      }
+
+      textarea {
+        width: 100%;
+        height: 36px;
+        background: #000;
+        color: #10b981;
+        border: 1px solid var(--border-color);
+        border-radius: 4px 0 0 4px;
+        padding: 6px 8px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.85em;
+        resize: none;
+        word-wrap: break-word;
+      }
+
+      .copy-btn {
+        background: var(--accent-color);
+        color: #000;
+        border: none;
+        border-radius: 0 4px 4px 0;
+        padding: 0 12px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .copy-btn:hover {
+        background: var(--accent-hover);
+      }
+
+      /* Table */
+      .table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1200px;
+      }
+
+      th {
+        background: #1e2638;
+        color: var(--accent-color);
+        padding: 10px;
+        text-align: left;
+        border-bottom: 2px solid var(--border-color);
+        user-select: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      th.col-set,
+      th.col-tier,
+      th.col-want {
+        cursor: pointer;
+      }
+
+      th.col-set:hover,
+      th.col-tier:hover,
+      th.col-want:hover {
+        background: #2a3441;
+      }
+
+      th.col-set.sorted,
+      th.col-tier.sorted,
+      th.col-want.sorted {
+        background: #2a3441;
+        border-bottom: 3px solid var(--accent-color);
+      }
+
+      td {
+        padding: 10px;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: top;
+        line-height: 1.4;
+      }
+
+      /* Column Sizing */
+      .col-set {
+        width: 150px;
+      }
+
+      .col-effect {
+        width: 240px;
+      }
+
+      .col-tier {
+        width: 220px;
+      }
+
+      .col-want {
+        width: 80px;
+        text-align: center;
+      }
+
+      .col-stats {
+        width: 90px;
+      }
+
+      .col-combine {
+        min-width: 180px;
+      }
+
+      /* Vertical Divider */
+      th.col-want,
+      td.col-want {
+        border-left: 2px solid rgba(77, 184, 255, 0.4);
+      }
+
+      .subtext {
+        font-size: 0.85em;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .badge {
+        display: inline-block;
+        background: var(--state-secondary);
+        border: 1px solid var(--state-secondary-border);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        color: var(--text-main);
+        margin-top: 4px;
+      }
+
+      /* Stats Grid (Vertical) */
+      .stats-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+
+      /* Consistent State Buttons */
+      .stat-btn {
+        background: var(--state-secondary);
+        border: 1px solid var(--state-secondary-border);
+        color: var(--text-main);
+        padding: 5px;
+        font-size: 0.85em;
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: center;
+        user-select: none;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .stat-btn:hover:not(.disabled) {
+        border-color: #64748b;
+        background: #334155;
+      }
+
+      .stat-btn.active {
+        background: var(--accent-color);
+        border: 1px solid var(--accent-hover);
+        color: #000;
+        font-weight: bold;
+      }
+
+      .stat-btn.disabled {
+        background: var(--state-disabled-bg);
+        border-color: var(--state-secondary);
+        color: var(--state-disabled-text);
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      /* Combine Cell */
+      .combine-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .combine-select {
+        background: #000;
+        color: #fff;
+        border: 1px solid var(--border-color);
+        padding: 6px;
+        border-radius: 4px;
+        width: 100%;
+      }
+
+      .chips-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .chip {
+        background: var(--accent-color);
+        border: 1px solid var(--accent-hover);
+        color: #000;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 0.9em;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .chip .remove {
+        color: #000;
+        opacity: 0.6;
+        cursor: pointer;
+        font-size: 1.2em;
+        line-height: 1;
+      }
+
+      .chip .remove:hover {
+        opacity: 1;
+      }
+
+      .conflict-warn {
+        color: #fbbf24;
+        font-size: 0.8em;
+        margin-top: 4px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 50px;
+        font-size: 1.2em;
+        color: var(--accent-color);
+      }
+    </style>
+  </head>
+
+  <body>
+
+    <div class="container">
+      <div class="top-controls">
+        <div class="global-opts">
+          <h1>Armor Set Wishlist</h1>
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="tier5Toggle" style="transform:scale(1.2)">
+            <strong>Tier 5 Only</strong>
+          </label>
+          <button onclick="clearAll()" style="padding:4px; background:#ef4444; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:0.85em;">Clear Selections</button>
+        </div>
+
+        <div class="query-outputs">
+          <div class="query-box">
+            <div class="label-group">
+              <label>Wanted / Keep</label>
+              <div class="subtext">DIM query</div>
+            </div>
+            <div class="textarea-container">
+              <textarea id="positiveQuery" readonly></textarea>
+              <button class="copy-btn" onclick="copyQuery('positiveQuery', this)">Copy</button>
+            </div>
+          </div>
+          <div class="query-box">
+            <div class="label-group">
+              <label>Junk / Dismantle</label>
+              <div class="subtext">DIM query</div>
+            </div>
+            <div class="textarea-container">
+              <textarea id="negativeQuery" readonly></textarea>
+              <button class="copy-btn" onclick="copyQuery('negativeQuery', this)">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="armorTable">
+          <thead>
+            <tr>
+              <th onclick="setSort('Set')" class="col-set">Set ↕</th>
+              <th class="col-effect">Bonus</th>
+              <th onclick="setSort('Tier')" class="col-tier">Analysis ↕</th>
+              <th onclick="setSort('Want')" class="col-want">Want ↕</th>
+              <th class="col-stats">Primary</th>
+              <th class="col-stats">Secondary</th>
+              <th class="col-stats">Tertiary</th>
+              <th class="col-combine">Combine with</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody">
+            <tr>
+              <td colspan="8" class="loading">Loading data from Google Sheets...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const CSV_URL = './data.csv';
+
+      const STATS = ['Health', 'Melee', 'Grenade', 'Super', 'Class', 'Weapons'];
+
+      const VALID_SECONDARIES = {
+        'Weapons': ['Grenade', 'Super'],
+        'Melee': ['Health', 'Weapons'],
+        'Class': ['Weapons', 'Melee'],
+        'Super': ['Melee', 'Health'],
+        'Grenade': ['Super', 'Class'],
+        'Health': ['Class', 'Grenade']
+      };
+
+      const ARCHETYPES = {
+        'Weapons_Grenade': 'gunner', 'Weapons_Super': 'powerhouse',
+        'Melee_Health': 'brawler', 'Melee_Weapons': 'skirmisher',
+        'Class_Weapons': 'specialist', 'Class_Melee': 'reaver',
+        'Super_Melee': 'paragon', 'Super_Health': 'colossus',
+        'Grenade_Super': 'grenadier', 'Grenade_Class': 'demolitionist',
+        'Health_Class': 'bulwark', 'Health_Grenade': 'siegebreaker'
+      };
+
+      const ALL_SLOTS = ['helmet', 'gauntlets', 'chest', 'leg', 'classitem'];
+      const EXOTICS = [
+        { id: 'exotic_helmet', label: 'Exotic Helmet', slot: 'helmet' },
+        { id: 'exotic_gauntlets', label: 'Exotic Gauntlets', slot: 'gauntlets' },
+        { id: 'exotic_chest', label: 'Exotic Chest', slot: 'chest' },
+        { id: 'exotic_leg', label: 'Exotic Leg Armor', slot: 'leg' },
+        { id: 'exotic_classitem', label: 'Exotic Class Item', slot: 'classitem' }
+      ];
+
+      let rawData = [];
+      let state = {
+        tier5: true,
+        sortCol: 'Set',
+        sortAsc: true,
+        prefs: {}
+      };
+      let slotAssignments = {};
+      let conflicts = {};
+
+      function loadState() {
+        try {
+          const saved = localStorage.getItem('dimConfigState');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            state.tier5 = parsed.tier5 !== undefined ? parsed.tier5 : true;
+            state.prefs = parsed.prefs || {};
+            state.sortCol = parsed.sortCol || 'Set';
+            state.sortAsc = parsed.sortAsc !== undefined ? parsed.sortAsc : true;
+          }
+        } catch (e) { console.error('Error loading state', e); }
+      }
+
+      function init() {
+        loadState();
+
+        document.getElementById('tier5Toggle').checked = state.tier5;
+        document.getElementById('tier5Toggle').addEventListener('change', (e) => {
+          state.tier5 = e.target.checked;
+          saveAndRender();
+        });
+
+        // Register delegated event handlers ONCE — never inside renderTable()
+        const tbody = document.getElementById('tableBody');
+        tbody.addEventListener('click', function (e) {
+          const t = e.target;
+          if (t.classList.contains('stat-btn') && !t.classList.contains('disabled')) {
+            toggleStat(t.dataset.key, t.dataset.type, t.dataset.stat);
+          } else if (t.classList.contains('remove')) {
+            removeCombine(t.dataset.key, t.dataset.val);
+          }
+        });
+        tbody.addEventListener('change', function (e) {
+          const t = e.target;
+          if (t.classList.contains('combine-select')) {
+            addCombine(t.dataset.key, t);
+          } else if (t.classList.contains('want-checkbox')) {
+            toggleWanted(t.dataset.key);
+          }
+        });
+
+        Papa.parse(CSV_URL, {
+          download: true,
+          header: true,
+          complete(results) {
+            rawData = results.data.filter(r => r.Set && r.Set.trim() !== '');
+            processData();
+            saveAndRender();
+          }
+        });
+      }
+
+      function processData() {
+        rawData.forEach(row => {
+          row.exactName = row.Set.split('\n')[0].trim().toLowerCase();
+          row.pcsNum = row.Pcs;
+          row.key = `${row.exactName}_${row.pcsNum}`;
+
+          if (!state.prefs[row.key]) {
+            state.prefs[row.key] = {
+              wanted: false,
+              primary: [], secondary: [], tertiary: [...STATS], combineWith: []
+            };
+          }
+        });
+      }
+
+      function saveAndRender() {
+        localStorage.setItem('dimConfigState', JSON.stringify(state));
+        optimizeSlots();
+        renderTable();
+        updateQueries();
+      }
+
+      function clearAll() {
+        if (confirm("Are you sure you want to clear all selections?")) {
+          for (let k in state.prefs) {
+            state.prefs[k] = { wanted: false, primary: [], secondary: [], tertiary: [...STATS], combineWith: [] };
+          }
+          saveAndRender();
+        }
+      }
+
+      function setSort(col) {
+        if (state.sortCol === col) {
+          state.sortAsc = !state.sortAsc;
+        } else {
+          state.sortCol = col;
+          state.sortAsc = true;
+        }
+        saveAndRender();
+      }
+
+      function updateSortIndicator() {
+        // Remove sorted class from all headers and update all to show ↕
+        document.querySelectorAll('th').forEach(th => {
+          th.classList.remove('sorted');
+          if (th.classList.contains('col-set') || th.classList.contains('col-tier') || th.classList.contains('col-want')) {
+            th.textContent = th.textContent.replace(/↑|↓|↕/g, '↕');
+          }
+        });
+
+        // Add sorted class and direction arrow to the current sort column
+        let colMap = { 'Set': 'col-set', 'Tier': 'col-tier', 'Want': 'col-want' };
+        let className = colMap[state.sortCol];
+        if (className) {
+          let header = document.querySelector(`th.${className}`);
+          if (header) {
+            header.classList.add('sorted');
+            let arrow = state.sortAsc ? '↑' : '↓';
+            header.textContent = header.textContent.replace(/↑|↓|↕/g, arrow);
+          }
+        }
+      }
+
+      function copyQuery(id, btnElement) {
+        let textarea = document.getElementById(id);
+        navigator.clipboard.writeText(textarea.value).then(() => {
+          let originalText = btnElement.innerText;
+          btnElement.innerText = "Copied!";
+          setTimeout(() => btnElement.innerText = originalText, 1500);
+        });
+      }
+
+      function getCombinations(arr, k) {
+        if (k === 0) return [[]];
+        if (arr.length === 0) return [];
+        let [first, ...rest] = arr;
+        return [
+          ...getCombinations(rest, k - 1).map(c => [first, ...c]),
+          ...getCombinations(rest, k)
+        ];
+      }
+
+      function optimizeSlots() {
+        slotAssignments = {};
+        conflicts = {};
+
+        let targetSets = [];
+        for (let key in state.prefs) {
+          let pref = state.prefs[key];
+          let exactName = key.split('_')[0];
+          let fourPcsKey = `${exactName}_4`;
+
+          if (key.endsWith('_2') && pref.wanted) {
+            if (!(state.prefs[fourPcsKey] && state.prefs[fourPcsKey].wanted)) {
+              targetSets.push(key);
+            }
+          }
+        }
+
+        let choices = {};
+        for (let key of targetSets) {
+          let pref = state.prefs[key];
+          let forbidden = pref.combineWith
+            .filter(c => c.startsWith('exotic_'))
+            .map(c => EXOTICS.find(e => e.id === c).slot);
+
+          let allowed = ALL_SLOTS.filter(s => !forbidden.includes(s));
+          let combos = getCombinations(allowed, 3);
+
+          if (combos.length === 0) {
+            conflicts[key] = "Too many exact slots blocked! Using fallback.";
+            choices[key] = [ALL_SLOTS.slice(0, 3)];
+          } else {
+            choices[key] = combos;
+          }
+        }
+
+        let bestScore = Infinity;
+        let bestAssignment = {};
+
+        function search(index, currentAssignment) {
+          if (index === targetSets.length) {
+            let score = 0;
+            for (let key of targetSets) {
+              state.prefs[key].combineWith.forEach(c => {
+                if (!c.startsWith('exotic_') && currentAssignment[c]) {
+                  score += currentAssignment[key].filter(s => currentAssignment[c].includes(s)).length;
+                }
+              });
+            }
+            if (score < bestScore) {
+              bestScore = score;
+              bestAssignment = { ...currentAssignment };
+            }
+            return;
+          }
+          let key = targetSets[index];
+          for (let choice of choices[key]) {
+            currentAssignment[key] = choice;
+            search(index + 1, currentAssignment);
+          }
+        }
+
+        search(0, {});
+        slotAssignments = bestAssignment;
+      }
+
+      function toggleWanted(key) {
+        let pref = state.prefs[key];
+        pref.wanted = !pref.wanted;
+        let [exactName, pcs] = key.split('_');
+
+        if (pcs === '4' && pref.wanted) {
+          if (state.prefs[`${exactName}_2`]) state.prefs[`${exactName}_2`].wanted = true;
+        }
+        if (pcs === '2' && !pref.wanted) {
+          if (state.prefs[`${exactName}_4`]) state.prefs[`${exactName}_4`].wanted = false;
+        }
+        saveAndRender();
+      }
+
+      function toggleStat(key, statType, stat) {
+        let pref = state.prefs[key];
+
+        if (statType === 'secondary') {
+          let validUnion = new Set();
+          pref.primary.forEach(p => VALID_SECONDARIES[p].forEach(s => validUnion.add(s)));
+          if (!validUnion.has(stat)) return;
+        }
+
+        let arr = pref[statType];
+        if (arr.includes(stat)) arr.splice(arr.indexOf(stat), 1);
+        else arr.push(stat);
+
+        if (statType === 'primary') {
+          let validUnion = new Set();
+          pref.primary.forEach(p => VALID_SECONDARIES[p].forEach(s => validUnion.add(s)));
+          pref.secondary = pref.secondary.filter(s => validUnion.has(s));
+          if (pref.primary.length === 0) pref.secondary = [];
+        }
+
+        saveAndRender();
+      }
+
+      function addCombine(key, selectElement) {
+        let val = selectElement.value;
+        if (!val) return;
+        let pref = state.prefs[key];
+        if (!pref.combineWith.includes(val)) pref.combineWith.push(val);
+        selectElement.value = "";
+        saveAndRender();
+      }
+
+      function removeCombine(key, val) {
+        let pref = state.prefs[key];
+        pref.combineWith = pref.combineWith.filter(v => v !== val);
+        saveAndRender();
+      }
+
+      function renderTable() {
+        updateSortIndicator();
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        let sorted = [...rawData].sort((a, b) => {
+          let res = 0;
+          if (state.sortCol === 'Want') {
+            let valA = state.prefs[a.key].wanted ? 1 : 0;
+            let valB = state.prefs[b.key].wanted ? 1 : 0;
+            res = state.sortAsc ? valA - valB : valB - valA;
+          } else if (state.sortCol === 'Tier') {
+            let valA = parseFloat(a.Rank) || 999;
+            let valB = parseFloat(b.Rank) || 999;
+            res = state.sortAsc ? valA - valB : valB - valA;
+          } else {
+            let valA = (a.Set || '').toString().toLowerCase();
+            let valB = (b.Set || '').toString().toLowerCase();
+            if (valA < valB) res = state.sortAsc ? -1 : 1;
+            else if (valA > valB) res = state.sortAsc ? 1 : -1;
+          }
+
+          if (res !== 0) return res;
+
+          // Secondary: always Set name if not sorted by it
+          if (state.sortCol !== 'Set') {
+            let setA = (a.Set || '').toString().toLowerCase();
+            let setB = (b.Set || '').toString().toLowerCase();
+            if (setA < setB) return -1;
+            if (setA > setB) return 1;
+          }
+
+          // Tertiary: Pcs ascending (2 then 4)
+          return parseFloat(a.Pcs) - parseFloat(b.Pcs);
+        });
+
+        let available2pcsSets = [];
+        for (let k in state.prefs) {
+          let exactName = k.split('_')[0];
+          if (k.endsWith('_2') && state.prefs[k].wanted && !(state.prefs[`${exactName}_4`] && state.prefs[`${exactName}_4`].wanted)) {
+            let row = rawData.find(r => r.key === k);
+            if (row) available2pcsSets.push({ id: k, label: row.Set.split('\n')[0] + " (2pcs)" });
+          }
+        }
+
+        sorted.forEach(row => {
+          let tr = document.createElement('tr');
+          let pref = state.prefs[row.key];
+
+          let displayName = row.Set.split('\n')[0];
+          let displaySub = row.Set.split('\n')[1] || '';
+
+          const renderStatGrid = (type) => {
+            let html = '<div class="stats-grid">';
+            STATS.forEach(s => {
+              let isActive = pref[type].includes(s);
+              let isDisabled = false;
+              if (type === 'secondary') {
+                if (pref.primary.length === 0) isDisabled = true;
+                else {
+                  let valid = new Set();
+                  pref.primary.forEach(p => VALID_SECONDARIES[p].forEach(vs => valid.add(vs)));
+                  if (!valid.has(s)) isDisabled = true;
+                }
+              }
+              let cls = `stat-btn ${isActive ? 'active' : ''} ${isDisabled ? 'disabled' : ''}`;
+              html += `<div class="${cls}" data-key="${row.key}" data-type="${type}" data-stat="${s}">${s}</div>`;
+            });
+            return html + '</div>';
+          };
+
+          let is2pcs = row.pcsNum === '2';
+          let want4pcs = state.prefs[`${row.exactName}_4`] && state.prefs[`${row.exactName}_4`].wanted;
+          let combineEnabled = is2pcs && pref.wanted && !want4pcs;
+
+          let combineHtml = '';
+          if (combineEnabled) {
+            let chipsHtml = pref.combineWith.map(val => {
+              let label = val.startsWith('exotic_')
+                ? EXOTICS.find(e => e.id === val)?.label
+                : available2pcsSets.find(s => s.id === val)?.label || val;
+              return `<div class="chip">${label} <span class="remove" data-key="${row.key}" data-val="${val}">&times;</span></div>`;
+            }).join('');
+
+            let validSets = available2pcsSets.filter(s => s.id !== row.key);
+            let optionsHtml = `<option value="">+ Add...</option>
+                    <optgroup label="Exotics">${EXOTICS.map(e => `<option value="${e.id}" ${pref.combineWith.includes(e.id) ? 'disabled' : ''}>${e.label}</option>`).join('')}</optgroup>
+                    ${validSets.length ? `<optgroup label="Other wanted 2pcs">${validSets.map(s => `<option value="${s.id}" ${pref.combineWith.includes(s.id) ? 'disabled' : ''}>${s.label}</option>`).join('')}</optgroup>` : ''}`;
+
+            combineHtml = `<div class="combine-cell"><div class="chips-container">${chipsHtml}</div><select class="combine-select" data-key="${row.key}">${optionsHtml}</select>${conflicts[row.key] ? `<div class="conflict-warn">${conflicts[row.key]}</div>` : ''}</div>`;
+          } else if (is2pcs && pref.wanted && want4pcs) {
+            combineHtml = '<span class="subtext">Disabled (4pcs wanted)</span>';
+          } else if (is2pcs) {
+            combineHtml = '<span class="subtext">Must be wanted</span>';
+          }
+
+          tr.innerHTML = `
+                <td class="col-set">
+                    <strong style="color:var(--accent-color); font-size:1.1em;">${displayName}</strong>
+                    <div class="subtext">${displaySub}</div>
+                </td>
+                <td class="col-effect">
+                    <div>
+                        <strong style="color:var(--accent-color); font-size:1.1em;">${row.Pcs} pcs &mdash; ${row.Bonus || '-'}</strong><br>
+                    </div>
+                    <div>
+                        <div class="subtext"><span style="color:var(--text-main)">Trigger:</span> ${row.Trigger || '-'}</div>
+                        <div class="subtext"><span style="color:var(--text-main)">Effect:</span> ${row.Effect || '-'}</div>
+                    </div>
+                </td>
+                <td class="col-tier">
+                    <div>
+                        <strong style="color:var(--accent-color); font-size:1.1em;">${row.Tier}-tier</strong>
+                    </div>
+                    <div class="subtext">${row['ANALYSIS Description'] || '-'}</div>
+                </td>
+                <td class="col-want">
+                    <input type="checkbox" class="want-checkbox" data-key="${row.key}" style="transform: scale(1.5); cursor: pointer; margin-top: 15px;" ${pref.wanted ? 'checked' : ''}>
+                </td>
+                <td class="col-stats">${renderStatGrid('primary')}</td>
+                <td class="col-stats">${renderStatGrid('secondary')}</td>
+                <td class="col-stats">${renderStatGrid('tertiary')}</td>
+                <td class="col-combine">${combineHtml}</td>
+            `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function getQueryForArchetypes(pref) {
+        if (pref.primary.length === 0) return "";
+        let arches = new Set();
+
+        if (pref.secondary.length === 0) {
+          pref.primary.forEach(p => VALID_SECONDARIES[p].forEach(s => arches.add(ARCHETYPES[`${p}_${s}`])));
+        } else {
+          pref.primary.forEach(p => pref.secondary.forEach(s => {
+            if (ARCHETYPES[`${p}_${s}`]) arches.add(ARCHETYPES[`${p}_${s}`]);
+          }));
+        }
+
+        let arr = Array.from(arches);
+        if (arr.length === 0) return "";
+        if (arr.length === 1) return `exactperk:${arr[0]}`;
+        return `(${arr.map(a => `exactperk:${a}`).join(' or ')})`;
+      }
+
+      function getQueryForTertiary(pref) {
+        if (pref.tertiary.length === 6 || pref.tertiary.length === 0) return "";
+        if (pref.tertiary.length === 1) return `tertiarystat:${pref.tertiary[0].toLowerCase()}`;
+        return `(${pref.tertiary.map(t => `tertiarystat:${t.toLowerCase()}`).join(' or ')})`;
+      }
+
+      function updateQueries() {
+        let rowQueries = [];
+
+        for (let key in state.prefs) {
+          let pref = state.prefs[key];
+          if (!pref.wanted) continue;
+
+          let exactName = key.split('_')[0];
+          let is2pcs = key.endsWith('_2');
+          let want4pcs = state.prefs[`${exactName}_4`] && state.prefs[`${exactName}_4`].wanted;
+
+          let parts = [`exactperk:"${exactName}"`];
+
+          if (is2pcs && !want4pcs && slotAssignments[key] && slotAssignments[key].length > 0) {
+            parts.push(`(${slotAssignments[key].map(s => `is:${s}`).join(' or ')})`);
+          }
+
+          let archQuery = getQueryForArchetypes(pref);
+          if (archQuery) parts.push(archQuery);
+
+          let tertQuery = getQueryForTertiary(pref);
+          if (tertQuery) parts.push(tertQuery);
+
+          rowQueries.push(`(${parts.join(' ')})`);
+        }
+
+        let baseFilters = `is:armor3.0 is:legendary`;
+        if (state.tier5) baseFilters += ` tier:5`;
+
+        let posTextarea = document.getElementById('positiveQuery');
+        let negTextarea = document.getElementById('negativeQuery');
+
+        if (rowQueries.length === 0) {
+          posTextarea.value = "No armor sets selected.";
+          negTextarea.value = "No armor sets selected.";
+          return;
+        }
+
+        let combinedOr = rowQueries.length > 1 ? `(${rowQueries.join(' or ')})` : rowQueries[0];
+        posTextarea.value = `${baseFilters} ${combinedOr}`;
+        negTextarea.value = `${baseFilters} -${combinedOr}`;
+      }
+
+      window.onload = init;
+    </script>
+
+  </body>
+
+</html>
