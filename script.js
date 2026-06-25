@@ -2,23 +2,23 @@ const CSV_URL = './data.csv';
 
 const STATS = ['Health', 'Melee', 'Grenade', 'Super', 'Class', 'Weapons'];
 
-const VALID_SECONDARIES = {
-    'Weapons': ['Grenade', 'Super'],
-    'Melee': ['Health', 'Weapons'],
-    'Class': ['Weapons', 'Melee'],
-    'Super': ['Melee', 'Health'],
-    'Grenade': ['Super', 'Class'],
-    'Health': ['Class', 'Grenade']
+const ARCHETYPE_DEFS = {
+    'gunner': { id: 'gunner', name: 'Gunner', p: 'Weapons', s: 'Grenade' },
+    'brawler': { id: 'brawler', name: 'Brawler', p: 'Melee', s: 'Health' },
+    'specialist': { id: 'specialist', name: 'Specialist', p: 'Class', s: 'Weapons' },
+    'paragon': { id: 'paragon', name: 'Paragon', p: 'Super', s: 'Melee' },
+    'grenadier': { id: 'grenadier', name: 'Grenadier', p: 'Grenade', s: 'Super' },
+    'bulwark': { id: 'bulwark', name: 'Bulwark', p: 'Health', s: 'Class' },
+    'siegebreaker': { id: 'siegebreaker', name: 'Siegebreaker', p: 'Health', s: 'Grenade' },
+    'skirmisher': { id: 'skirmisher', name: 'Skirmisher', p: 'Melee', s: 'Weapons' },
+    'demolitionist': { id: 'demolitionist', name: 'Demolitionist', p: 'Grenade', s: 'Class' },
+    'colossus': { id: 'colossus', name: 'Colossus', p: 'Super', s: 'Health' },
+    'reaver': { id: 'reaver', name: 'Reaver', p: 'Class', s: 'Melee' },
+    'powerhouse': { id: 'powerhouse', name: 'Powerhouse', p: 'Weapons', s: 'Super' }
 };
 
-const ARCHETYPES = {
-    'Weapons_Grenade': 'gunner', 'Weapons_Super': 'powerhouse',
-    'Melee_Health': 'brawler', 'Melee_Weapons': 'skirmisher',
-    'Class_Weapons': 'specialist', 'Class_Melee': 'reaver',
-    'Super_Melee': 'paragon', 'Super_Health': 'colossus',
-    'Grenade_Super': 'grenadier', 'Grenade_Class': 'demolitionist',
-    'Health_Class': 'bulwark', 'Health_Grenade': 'siegebreaker'
-};
+// Memory object to remember the last chosen tertiaries for each archetype globally
+const lastUsedTertiaries = {};
 
 const ALL_SLOTS = ['helmet', 'gauntlets', 'chest', 'leg', 'classitem'];
 
@@ -105,9 +105,7 @@ const init = () => {
 const handleTableClick = (e) => {
     const target = e.target;
 
-    if (target.classList.contains('stat-btn') && !target.classList.contains('disabled')) {
-        toggleStat(target.dataset.key, target.dataset.type, target.dataset.stat);
-    } else if (target.classList.contains('remove')) {
+    if (target.classList.contains('remove') && target.dataset.val) {
         removeCombine(target.dataset.key, target.dataset.val);
     }
 };
@@ -138,9 +136,7 @@ const processData = () => {
         if (!state.prefs[row.key]) {
             state.prefs[row.key] = {
                 wanted: false,
-                primary: [],
-                secondary: [],
-                tertiary: [...STATS],
+                archetypes: {},
                 combineWith: []
             };
         }
@@ -165,9 +161,7 @@ const clearAll = () => {
         for (let k in state.prefs) {
             state.prefs[k] = {
                 wanted: false,
-                primary: [],
-                secondary: [],
-                tertiary: [...STATS],
+                archetypes: {},
                 combineWith: []
             };
         }
@@ -365,18 +359,18 @@ const toggleWanted = (key) => {
     const pref = state.prefs[key];
     pref.wanted = !pref.wanted;
 
-    // Reset stats to default when unchecking want
+    // Reset archetypes to default when unchecking want
     if (!pref.wanted) {
-        pref.primary = [];
-        pref.secondary = [];
-        pref.tertiary = [...STATS];
+        pref.archetypes = {};
     }
 
     const [exactName, pcs] = key.split('_');
 
+    // Auto-want the 2pcs when 4pcs is wanted
     if (pcs === '4' && pref.wanted) {
         if (state.prefs[`${exactName}_2`]) state.prefs[`${exactName}_2`].wanted = true;
     }
+    // Auto-unwant the 4pcs when 2pcs is unwanted
     if (pcs === '2' && !pref.wanted) {
         if (state.prefs[`${exactName}_4`]) state.prefs[`${exactName}_4`].wanted = false;
     }
@@ -385,46 +379,63 @@ const toggleWanted = (key) => {
 };
 
 /**
- * Toggle a stat in the specified stat type array
- * @param {string} key - Armor set key
- * @param {string} statType - Type of stat (primary, secondary, tertiary)
- * @param {string} stat - Stat name
+ * Add an archetype to the armor set
+ * @param {string} rowKey - Armor set key
+ * @param {string} archId - Archetype ID
  */
-const toggleStat = (key, statType, stat) => {
-    const pref = state.prefs[key];
-
-    if (statType === 'secondary') {
-        const validUnion = new Set();
-        pref.primary.forEach(p => VALID_SECONDARIES[p].forEach(s => validUnion.add(s)));
-        if (!validUnion.has(stat)) return;
+function addArchetype(rowKey, archId) {
+    if (!state.prefs[rowKey].archetypes) {
+        state.prefs[rowKey].archetypes = {};
     }
 
-    const arr = pref[statType];
-    if (arr.includes(stat)) {
-        arr.splice(arr.indexOf(stat), 1);
-    } else {
-        arr.push(stat);
-    }
+    const def = ARCHETYPE_DEFS[archId];
 
-    if (statType === 'primary') {
-        const validUnion = new Set();
-        pref.primary.forEach(p => VALID_SECONDARIES[p].forEach(s => validUnion.add(s)));
-        pref.secondary = pref.secondary.filter(s => validUnion.has(s));
-        if (pref.primary.length === 0) pref.secondary = [];
-    }
+    // Get all available tertiary stats (all except primary and secondary)
+    const allTerts = STATS.filter(s => s !== def.p && s !== def.s);
 
-    if (statType === 'primary' || statType === 'secondary') {
-        const disabledTerts = getDisabledTertiaryStats(pref);
-        pref.tertiary = pref.tertiary.filter(s => !disabledTerts.has(s));
-    }
+    // Use last used tertiaries if they exist, otherwise use all available
+    const defaultTerts = lastUsedTertiaries[archId] ? [...lastUsedTertiaries[archId]] : allTerts;
+    state.prefs[rowKey].archetypes[archId] = defaultTerts;
 
-    // Auto-check want if not already wanted
-    if (!pref.wanted) {
-        pref.wanted = true;
-    }
+    // Auto-select Want
+    state.prefs[rowKey].wanted = true;
 
     saveAndRender();
-};
+}
+
+/**
+ * Remove an archetype from the armor set
+ * @param {string} rowKey - Armor set key
+ * @param {string} archId - Archetype ID
+ */
+function removeArchetype(rowKey, archId) {
+    delete state.prefs[rowKey].archetypes[archId];
+    saveAndRender();
+}
+
+/**
+ * Toggle a tertiary stat for an archetype
+ * @param {string} rowKey - Armor set key
+ * @param {string} archId - Archetype ID
+ * @param {string} stat - Stat name
+ */
+function toggleTertiary(rowKey, archId, stat) {
+    const terts = state.prefs[rowKey].archetypes[archId];
+    const index = terts.indexOf(stat);
+
+    if (index > -1) {
+        terts.splice(index, 1);
+    } else {
+        terts.push(stat);
+    }
+
+    // Save to global memory for convenience on future sets
+    lastUsedTertiaries[archId] = [...terts];
+
+    saveAndRender();
+}
+
+
 
 /**
  * Add a combination to the armors's combineWith list
@@ -470,63 +481,7 @@ const removeCombine = (key, val) => {
     saveAndRender();
 };
 
-/**
- * Create a stat button element
- * @param {string} stat - Stat name
- * @param {string} type - Stat type (primary, secondary, tertiary)
- * @param {object} pref - Preference object
- * @param {string} key - Armor set key
- * @returns {HTMLElement} The button element
- */
-const createStatButton = (stat, type, pref, key) => {
-    const button = document.createElement('button');
-    button.className = 'stat-btn';
-    button.textContent = stat;
-    button.dataset.key = key;
-    button.dataset.type = type;
-    button.dataset.stat = stat;
 
-    const isActive = pref[type].includes(stat);
-    if (isActive) button.classList.add('active');
-
-    let isDisabled = false;
-    if (type === 'secondary') {
-        if (pref.primary.length === 0) {
-            isDisabled = true;
-        } else {
-            const valid = new Set();
-            pref.primary.forEach(p => VALID_SECONDARIES[p].forEach(vs => valid.add(vs)));
-            if (!valid.has(stat)) isDisabled = true;
-        }
-    }
-    if (type === 'tertiary') {
-        if (getDisabledTertiaryStats(pref).has(stat)) {
-            isDisabled = true;
-        }
-    }
-
-    if (isDisabled) button.classList.add('disabled');
-
-    return button;
-};
-
-/**
- * Create stat grid for a given type (primary, secondary, tertiary)
- * @param {string} type - Stat type
- * @param {object} pref - Preference object
- * @param {string} key - Armor set key
- * @returns {HTMLElement} Container with stat buttons
- */
-const createStatGrid = (type, pref, key) => {
-    const grid = document.createElement('div');
-    grid.className = 'stats-grid';
-
-    STATS.forEach(stat => {
-        grid.appendChild(createStatButton(stat, type, pref, key));
-    });
-
-    return grid;
-};
 
 /**
  * Create a chip element for a combination
@@ -714,29 +669,131 @@ const createTableRow = (row, available2pcsSets) => {
     checkbox.checked = pref.wanted;
     wantCell.appendChild(checkbox);
 
-    const primaryCell = document.createElement('td');
-    primaryCell.className = 'col-stats';
-    primaryCell.appendChild(createStatGrid('primary', pref, row.key));
-
-    const secondaryCell = document.createElement('td');
-    secondaryCell.className = 'col-stats';
-    secondaryCell.appendChild(createStatGrid('secondary', pref, row.key));
-
-    const tertiaryCell = document.createElement('td');
-    tertiaryCell.className = 'col-stats';
-    tertiaryCell.appendChild(createStatGrid('tertiary', pref, row.key));
-
+    // Create combine cell first (needed for early return)
     const combineTd = document.createElement('td');
     combineTd.className = 'col-combine';
     combineTd.appendChild(createCombineCell(row.key, pref, is2pcs, want4pcs, available2pcsSets));
+
+    // --- NEW ARCHETYPES COLUMN ---
+    const tdArch = document.createElement('td');
+    tdArch.className = 'col-archetypes';
+
+    // If this is a 2pcs row and the 4pcs is wanted, disable the archetype column
+    if (is2pcs && want4pcs) {
+        const msg = document.createElement('span');
+        msg.className = 'subtext';
+        msg.textContent = 'Disabled (4pcs wanted)';
+        tdArch.appendChild(msg);
+        tr.appendChild(setCell);
+        tr.appendChild(effectCell);
+        tr.appendChild(tierCell);
+        tr.appendChild(wantCell);
+        tr.appendChild(tdArch);
+        tr.appendChild(combineTd);
+        return tr;
+    }
+
+    const archContainer = document.createElement('div');
+    archContainer.className = 'archetype-container';
+
+    const selectedArchs = pref.archetypes || {};
+
+    // Render already selected archetypes
+    Object.keys(selectedArchs).forEach(archId => {
+        const def = ARCHETYPE_DEFS[archId];
+        const block = document.createElement('div');
+        block.className = 'archetype-block';
+
+        // Header: Name (Primary/Secondary) & Remove Button
+        const header = document.createElement('div');
+        header.className = 'arch-header';
+        const nameSpan = document.createElement('span');
+        nameSpan.innerHTML = `${def.name} <small>(${def.p}/${def.s})</small>`;
+        const removeBtn = document.createElement('span');
+        removeBtn.className = 'remove';
+        removeBtn.textContent = '×';
+        removeBtn.onclick = () => removeArchetype(row.key, archId);
+        header.appendChild(nameSpan);
+        header.appendChild(removeBtn);
+        block.appendChild(header);
+
+        // Tertiary Pills
+        const tertContainer = document.createElement('div');
+        tertContainer.className = 'tert-list';
+
+        STATS.forEach(stat => {
+            // Prevent picking primary or secondary as a tertiary stat
+            if (stat === def.p || stat === def.s) return;
+
+            const isActive = selectedArchs[archId].includes(stat);
+            const pill = document.createElement('div');
+            pill.className = `tert-pill ${isActive ? 'active' : ''}`;
+            pill.textContent = stat;
+            pill.onclick = () => toggleTertiary(row.key, archId, stat);
+            tertContainer.appendChild(pill);
+        });
+
+        block.appendChild(tertContainer);
+        archContainer.appendChild(block);
+    });
+    tdArch.appendChild(archContainer);
+
+    // Dropdown to add more archetypes, organized by primary stat
+    const activeArchCount = Object.keys(selectedArchs).length;
+    const totalArchCount = Object.keys(ARCHETYPE_DEFS).length;
+
+    if (activeArchCount < totalArchCount) {
+        const addSelect = document.createElement('select');
+        addSelect.className = 'add-arch-select';
+
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '+ Add Archetype...';
+        addSelect.appendChild(defaultOption);
+
+        // Group archetypes by primary stat
+        const grouped = {};
+        Object.values(ARCHETYPE_DEFS).forEach(def => {
+            if (!selectedArchs[def.id]) {
+                if (!grouped[def.p]) grouped[def.p] = [];
+                grouped[def.p].push(def);
+            }
+        });
+
+        // Create optgroups for each primary stat
+        STATS.forEach(primaryStat => {
+            if (grouped[primaryStat] && grouped[primaryStat].length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = primaryStat;
+
+                // Sort by secondary stat within each primary
+                grouped[primaryStat].sort((a, b) => a.s.localeCompare(b.s));
+
+                grouped[primaryStat].forEach(def => {
+                    const option = document.createElement('option');
+                    option.value = def.id;
+                    option.textContent = `${def.name} (${def.s})`;
+                    optgroup.appendChild(option);
+                });
+
+                addSelect.appendChild(optgroup);
+            }
+        });
+
+        addSelect.onchange = (e) => {
+            if (e.target.value) {
+                addArchetype(row.key, e.target.value);
+                e.target.value = ''; // reset dropdown
+            }
+        };
+        tdArch.appendChild(addSelect);
+    }
 
     tr.appendChild(setCell);
     tr.appendChild(effectCell);
     tr.appendChild(tierCell);
     tr.appendChild(wantCell);
-    tr.appendChild(primaryCell);
-    tr.appendChild(secondaryCell);
-    tr.appendChild(tertiaryCell);
+    tr.appendChild(tdArch);
     tr.appendChild(combineTd);
 
     return tr;
@@ -799,78 +856,7 @@ const renderTable = () => {
     });
 };
 
-/**
- * Compute the set of tertiary stats that are disabled for a given pref.
- * A stat is disabled only if every active archetype pair forbids it.
- * @param {object} pref - Preference object
- * @returns {Set<string>} Disabled tertiary stat names
- */
-const getDisabledTertiaryStats = (pref) => {
-    if (pref.primary.length === 0) return new Set();
 
-    const pairs = [];
-    if (pref.secondary.length === 0) {
-        pref.primary.forEach(p => {
-            VALID_SECONDARIES[p].forEach(s => pairs.push([p, s]));
-        });
-    } else {
-        pref.primary.forEach(p => {
-            pref.secondary.forEach(s => {
-                if (ARCHETYPES[`${p}_${s}`]) pairs.push([p, s]);
-            });
-        });
-    }
-
-    if (pairs.length === 0) return new Set();
-
-    let disabled = new Set([pairs[0][0], pairs[0][1]]);
-    for (let i = 1; i < pairs.length; i++) {
-        const forbidden = new Set([pairs[i][0], pairs[i][1]]);
-        disabled = new Set([...disabled].filter(s => forbidden.has(s)));
-    }
-    return disabled;
-};
-
-/**
- * Generate DIM query string for archetyped pairs
- * @param {object} pref - Preference object
- * @returns {string} Query string fragment
- */
-const getQueryForArchetypes = (pref) => {
-    if (pref.primary.length === 0) return '';
-
-    const arches = new Set();
-
-    if (pref.secondary.length === 0) {
-        pref.primary.forEach(p => {
-            VALID_SECONDARIES[p].forEach(s => {
-                arches.add(ARCHETYPES[`${p}_${s}`]);
-            });
-        });
-    } else {
-        pref.primary.forEach(p => {
-            pref.secondary.forEach(s => {
-                if (ARCHETYPES[`${p}_${s}`]) arches.add(ARCHETYPES[`${p}_${s}`]);
-            });
-        });
-    }
-
-    const arr = Array.from(arches);
-    if (arr.length === 0) return '';
-    if (arr.length === 1) return `exactperk:${arr[0]}`;
-    return `(${arr.map(a => `exactperk:${a}`).join(' or ')})`;
-};
-
-/**
- * Generate DIM query string for tertiary stats
- * @param {object} pref - Preference object
- * @returns {string} Query string fragment
- */
-const getQueryForTertiary = (pref) => {
-    if (pref.tertiary.length === 6 || pref.tertiary.length === 0) return '';
-    if (pref.tertiary.length === 1) return `tertiarystat:${pref.tertiary[0].toLowerCase()}`;
-    return `(${pref.tertiary.map(t => `tertiarystat:${t.toLowerCase()}`).join(' or ')})`;
-};
 
 /**
  * Update DIM query textareas with current selections
@@ -901,16 +887,37 @@ const updateQueries = () => {
             parts.push(`(${slotAssignments[key].map(s => `is:${s}`).join(' or ')})`);
         }
 
-        const archQuery = getQueryForArchetypes(pref);
-        if (archQuery) parts.push(archQuery);
+        const selectedArchs = pref.archetypes || {};
+        const archKeys = Object.keys(selectedArchs);
 
-        const tertQuery = getQueryForTertiary(pref);
-        if (tertQuery) parts.push(tertQuery);
+        if (archKeys.length > 0) {
+            const archQueries = archKeys.map(archId => {
+                const def = ARCHETYPE_DEFS[archId];
+                const baseArchQuery = `exactperk:${archId}`;
+                const terts = selectedArchs[archId];
+
+                // Get all available tertiary stats for this archetype
+                const allAvailableTerts = STATS.filter(s => s !== def.p && s !== def.s);
+
+                // If all available tertiaries are selected, omit the tertiary filter (cleaner query)
+                if (terts.length === allAvailableTerts.length) {
+                    return baseArchQuery;
+                }
+
+                if (terts.length > 0) {
+                    // Map selected tertiaries into DIM query syntax
+                    const tertQuery = terts.map(stat => `tertiarystat:${stat.toLowerCase()}`).join(' or ');
+                    return `(${baseArchQuery} (${tertQuery}))`;
+                }
+                return baseArchQuery;
+            });
+            parts.push(`(${archQueries.join(' or ')})`);
+        }
 
         rowQueries.push(`(${parts.join(' ')})`);
     }
 
-    const baseFilters = state.tier5 ? 'is:armor3.0 is:legendary tier:5' : 'is:armor3.0 is:legendary';
+    const baseFilters = 'is:armor3.0 is:legendary';
 
     const posTextarea = document.getElementById('positiveQuery');
     const negTextarea = document.getElementById('negativeQuery');
@@ -922,8 +929,8 @@ const updateQueries = () => {
     }
 
     const combinedOr = rowQueries.length > 1 ? `(${rowQueries.join(' or ')})` : rowQueries[0];
-    posTextarea.value = `${baseFilters} ${combinedOr}`;
-    negTextarea.value = `${baseFilters} -${combinedOr}`;
+    posTextarea.value = state.tier5 ? `${baseFilters} tier:5 ${combinedOr}` : `${baseFilters} ${combinedOr}`;
+    negTextarea.value = state.tier5 ? `${baseFilters} (-tier:5 or -${combinedOr})` : `${baseFilters} -${combinedOr}`;
 };
 
 window.addEventListener('load', init);
