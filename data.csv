@@ -12,15 +12,16 @@ Vault of Glass","29","Collective Power","4","damage","5 damage instances within 
 Prophecy","29","So Very Thin","4","ability
 survivability","Light weapon kills
 Dark or kinetic weapon kills
-alternating weapon kills within ?s","?% grenade energy
-?% melee energy
+alternating weapon kills within ?s","22?% grenade energy
+22?% melee energy
 40% DR for 5s, refreshable on kill","easily the most consistent source of high DR if able to play around swapping polarities, excellent chunk gains too","5","S"
 "","9","Smoke Jumper
 Solo/Fireteam Ops","27","Ride Together, Die Together","2","survivability","orb pickup","40% DR decaying for 3s","excellent pairing with Attrition Orbs / triple arm orb gen mod setups, a little build-dependent but solid regardless","6","A"
 "","","Legacy's Oath
 Deep Stone Crypt","29","Augmented Servos","2","splash","powered melee kill","9m disorienting pulse","probably best melee-focused set bonus in the game, effective DR from blind, constantly reprocable","7","A"
-"","","Oryx's Memory
-King's Fall","29","Iron Sharpens Iron","2","ammo","elite+ kill","additive ~12% special ammo progress, ~8% heavy ammo progress","still pretty solid post-nerf in elite-heavy encounters, just not overpowered","8","A"
+"","","Crystocrene
+Europa","29","Resupply","2","ammo
+ability","kill (12s ICD)","additive 20% ammo progress for both types (effectively ~7x at 0, ~3-3.5x at 100) and Orb Of Power","probably currently bugged and works in combat; actually pretty decent and about doubles ammo gen if 5 kills/12s","8","A"
 "","","Nezarec's Nightmare
 Root of Nightmares","29","Dream-Devourer","4","survivability","elite+ finisher
 Devour","Devour
@@ -30,19 +31,18 @@ Pantheon","29","Well Prepared","2","ability","ammo pickup
 Armor Charge (6 stacks)","Armor Charge
 10 Health per stack","enables infinite special finishers with Curative Orbs, works with Stacks on Stacks","10","A"
 "","","Oryx's Memory
-King's Fall","29","Ascendant Escape","4","survivability","critical health after elite+ kill","invisibility for 6-8s, no ICD","viability depends on how strong 2pc. is post-patch, but instant tracking break and invis when needed is very helpful","11","A"
+King's Fall","29","Ascendant Escape","4","survivability","critical health after elite+ kill","invisibility for 6-8s, no ICD","instant tracking break and invis when needed is very helpful","11","A"
 "","","Deep Explorer
 Duality","29","Bittersweet","4","survivability","weapon stow","35 / 65 / 87.5 / 105 / 130 / 170 / 195 / full HP per stack","in practice, a very large amount of healing uptime as long as you play around swapping weapons, have to forgo DR","12","A"
 "","3","AION Adapter
 Kepler - Mythic","27","Force Absorption","2","survivability","micro-missile, rocket, or GL kill","20% splash DR and 60% self explosive DR for 15s","splash is a fair amount of incoming damage, but overshadowed by other more universal DR options","13","A"
+"","","Oryx's Memory
+King's Fall","29","Iron Sharpens Iron","2","ammo","elite+ kill","additive ~12% special ammo progress, ~8% heavy ammo progress","still pretty solid post-nerf in elite-heavy encounters, just not overpowered, worse than Europa 2pc. with lower elite presence","14","A"
 "","","Great Hunt
-Last Wish","29","Taken Armaments","4","ammo","grenade kills","~3.5x heavy ammo progress","makes Getaway warlock an ammo printer with mod support","14","A"
+Last Wish","29","Taken Armaments","4","ammo","grenade kills","~3.5x heavy ammo progress","makes Getaway warlock an ammo printer with mod support","15","A"
 "","","Techeun's Regalia
 Shattered Throne","29","Truth to Power","4","survivability
-ability","dealing damage (1), kills (20-35), or finishers (60-90), up to 999 stacks","up to 15% DR, additive CDR at max stacks (similar to empowering rift)","consistent DR source that doesn't require much, but doesn't have a high ceiling and is tied to 4pc.","15","A"
-"","","Crystocrene
-Europa","29","Resupply","2","ammo
-ability","kill (12s ICD)","additive 20% ammo progress for both types (effectively ~7x at 0, ~3-3.5x at 100) and Orb Of Power","probably currently bugged and works in combat; actually pretty decent and about doubles ammo gen if 5 kills/12s","16","A"
+ability","dealing damage (1), kills (20-35), or finishers (60-90), up to 999 stacks","up to 15% DR, additive CDR at max stacks (similar to empowering rift)","consistent DR source that doesn't require much, but doesn't have a high ceiling and is tied to 4pc.","16","A"
 "","","Sage Protector
 Equilibrium","28","Combat Meditation","2","ability","sword damage","5% grenade and class
 10% if Blade Focus active","enables ability spam strategies using high hit count swords like casters and Ergo, also decent for neutral depending on build","17","A"
@@ -110,7 +110,7 @@ Kepler","27","Reactive Booster","4","survivability","sprinting while critical, s
 "","19","Techsec
 Solo/Fireteam Ops","27","Wrecker","2","damage","passive","200% kinetic damage to shields/overshields, 15% kinetic damage to constructs","essentially just exists to make 4pc. function, otherwise not very useful outside edge cases like Calus final and boss Subjugators","42","C"
 "","","Exodus Down
-Nessus","29","Emergency Electromagnet","2","survivability","critical health","collects nearby orbs and ammo within 10?m, multiple orbs count as simultaneous for 4pc.","currently bugged and only works once per life; not particularly useful unless paired with 4pc. or mod setup","43","C"
+Nessus","29","Emergency Electromagnet","2","survivability","critical health","collects nearby orbs and ammo within 10?m, multiple orbs count as simultaneous for 4pc.","not particularly useful unless paired with 4pc. or mod setup","43","C"
 "","","Crota's Memory
 Crota's End","29","Cursed Fist","2","splash","melee kill","same radius as origin trait Cursed Thrall explosion, less damage (257 at +0)","extra explosions are nice, but damage is quite low and DSC 2pc. is definitely favored in endgame","44","C"
 "","","Seventh Seraph
@@ -162,48 +162,48 @@ Crucible","29","Scoot to Loot","2","refill","sliding","picks up ammo within 15m 
 Deep Stone Crypt","29","God-like Judgment","4","damage","critical health or super cast","570 damage (+0) heat-seeking missile array, no ICD","entire missile array does the same damage as a single adaptive sniper shot","65","C"
 "","","Veritas
 Throne World","29","Lucent Tithes","4","survivability","elite+ finisher","50? HP and 3 Void moths that give 22.5HP Void Overshield to allies each","not the best reward for an elite+ finisher compared to other set bonuses, eHP gain is pretty decent","66","C"
+"","","Flain
+Sundered Doctrine","29","Sinew Stitching","2","splash","any damage taken (25?% chance) or reaching critical HP","Threadling spawn (5s ICD, separate for both triggers)","not the worst Threadling spawn source, has artifact synergy, but much better neutral set bonuses exist","67","C"
 "","24","Uncaged Deviants
-Desert Perpetual - Epic","27","Superluminal Motion","4","survivability","super damage then movement","30 HP/s for 10s, refreshable","not the worst for DPS, specifically for Well warlock, but there are definitely better options, especially for 4pc.","67","C"
+Desert Perpetual - Epic","27","Superluminal Motion","4","survivability","super damage then movement","30 HP/s for 10s, refreshable","not the worst for DPS, specifically for Well warlock, but there are definitely better options, especially for 4pc.","68","C"
 "","","Reverie Dawn
-Dreaming City","29","A Wish Fulfilled","4","survivability","deaggro effect ending (any kill ends early)","Cure x1","held back immensely by 5s reproc ICD, also Cure x1 is not much healing given activation rate","68","C"
+Dreaming City","29","A Wish Fulfilled","4","survivability","deaggro effect ending (any kill ends early)","Cure x1","held back immensely by 5s reproc ICD, also Cure x1 is not much healing given activation rate","69","C"
 "","","Spacewalk
-Vesper's Host","29","Augmented Explosives","4","splash","grenade usage","?m disorienting pulse before detonation","relatively weak subclass effect tied to a very long cooldown, also 2pc. sucks","69","D"
+Vesper's Host","29","Augmented Explosives","4","splash","grenade usage","?m disorienting pulse before detonation","relatively weak subclass effect tied to a very long cooldown, also 2pc. sucks","70","D"
 "","","Seventh Seraph
-Cosmodrome","29","Rasputin's Wrath","2","stats","AoE, solar ability, Seventh Seraph, IKELOS, Outbreak, Sleeper kills (10 stacks)","3 Weapons and 3 Grenade per stack for 10s","arguably the two best stats to have as a passive benefit, but still not that noticeable","70","D"
+Cosmodrome","29","Rasputin's Wrath","2","stats","AoE, solar ability, Seventh Seraph, IKELOS, Outbreak, Sleeper kills (10 stacks)","3 Weapons and 3 Grenade per stack for 10s","arguably the two best stats to have as a passive benefit, but still not that noticeable","71","D"
 "","","Circuit
 Sparrow Racing League","29","Revving Up","2","survivability","fast movement (10 stacks)
 sprinting for 2.5s at max stacks","+5% critical regen speed per stack (~1.63x speed, starts 0.5s faster)
-Speed Booster","takes way too long to stack through normal gameplay pattern, loses stacks very quickly, regen effect is decent but uptime not great","71","D"
+Speed Booster","takes way too long to stack through normal gameplay pattern, loses stacks very quickly, regen effect is decent but uptime not great","72","D"
 "","","Wildwood
-EDZ","29","Watchtower","2","survivability","ADS precision kills","25% DR until ADS stopped","not really practical in most PvE scenarios, non-stackable DR is available at this level in a broader application","72","D"
+EDZ","29","Watchtower","2","survivability","ADS precision kills","25% DR until ADS stopped","not really practical in most PvE scenarios, non-stackable DR is available at this level in a broader application","73","D"
 "","","CODA
 Prophecy","29","Between Poles","2","stats","Light weapon kills (5 stacks)
 Dark or kinetic weapon kills (5 stacks)
 Polarity change removes stacks","8 Grenade per stack for 10s
-8 Melee per stack for 10s","most grenade/melee builds already invest into high stat, not really worth spending set bonus to do so","73","D"
+8 Melee per stack for 10s","most grenade/melee builds already invest into high stat, not really worth spending set bonus to do so","74","D"
 "","","Kentarch 3
-Garden of Salvation","29","Network Upload","4","ability","weapon kills","?% melee energy to allies within ?m","basically just gives you Pugilist as a 4pc. set bonus","74","D"
+Garden of Salvation","29","Network Upload","4","ability","weapon kills","?% melee energy to allies within ?m","basically just gives you Pugilist as a 4pc. set bonus","75","D"
 "","","Pantheos Resplendent
-Pantheon","29","Down the Line","4","damage","damaging miniboss+ enemies (10 stacks, 1s ICD, any damage)","15% damage to minor/elites, 1-2 stacks (minor/elite) removed on kill (1s window?)","reverse Redirection, 15% not that much and definitely an odd choice for a 4pc.","75","D"
+Pantheon","29","Down the Line","4","damage","damaging miniboss+ enemies (10 stacks, 1s ICD, any damage)","15% damage to minor/elites, 1-2 stacks (minor/elite) removed on kill (1s window?)","reverse Redirection, 15% not that much and definitely an odd choice for a 4pc.","76","D"
 "","","First Ascent
-Pale Heart","29","Stack 'Em Up","2","ability","kills of different elements (5 stacks)","1.2% Transcendence gains per stack for 24s, cannot refresh at 5 stacks","results in 15-20% Transcendence progress if requirements are fulfilled, gains do not progress further at 5 stacks","76","D"
+Pale Heart","29","Stack 'Em Up","2","ability","kills of different elements (5 stacks)","1.2% Transcendence gains per stack for 24s, cannot refresh at 5 stacks","results in 15-20% Transcendence progress if requirements are fulfilled, gains do not progress further at 5 stacks","77","D"
 "","","Thriving Survivor
 Lawless Frontier","28","Room Clearing","4","stats
-ammo","3 heat or primary weapon kills with 4s between each","40 Grenade, 40 Weapon, 40 ammo gen for heat/primary weapons for 10s","pretty solid stat bonuses, kill spree requirements are not the worst, held back by low impact 2pc.","77","D"
+ammo","3 heat or primary weapon kills with 4s between each","40 Grenade, 40 Weapon, 40 ammo gen for heat/primary weapons for 10s","pretty solid stat bonuses, kill spree requirements are not the worst, held back by low impact 2pc.","78","D"
 "","","Eutechnology
-Arena/Pinnacle Ops","29","Techeun's Foresight","4","splash","kill after Void Breach pickup","~3m / 87 damage (+0) void explosion (increased to ~5m / 173 damage if within 7s of pickup)","splash damage and radius are both underwhelming, also long effective cooldown between each explosion","78","D"
+Arena/Pinnacle Ops","29","Techeun's Foresight","4","splash","kill after Void Breach pickup","~3m / 87 damage (+0) void explosion (increased to ~5m / 173 damage if within 7s of pickup)","splash damage and radius are both underwhelming, also long effective cooldown between each explosion","79","D"
 "","","Atheon's Memory
 Vault of Glass","29","Radiolaria Breach","2","stats
-splash","orb pickup, then critical health","? Health for 7s, drops 4 radiolaria pools around player in a clover pattern, ~5m radius","survivability effect is very weak, pools barely stagger enemies, not very effective overall","79","D"
+splash","orb pickup, then critical health","? Health for 7s, drops 4 radiolaria pools around player in a clover pattern, ~5m radius","survivability effect is very weak, pools barely stagger enemies, not very effective overall","80","D"
 "","","Resonant Fury
-Vow of the Disciple","29","Resonant Plating","2","survivability","taking miniboss+ melee damage","starts health regen","regen can be immediately interrupted, combatant class + melee requirement is very strict","80","D"
+Vow of the Disciple","29","Resonant Plating","2","survivability","taking miniboss+ melee damage","starts health regen","regen can be immediately interrupted, combatant class + melee requirement is very strict","81","D"
 "","","Triumphal Anthem
-Crucible","29","Shoot to Scoot","4","survivability","weapon damage","slides are 33% longer and give 50% DR while sliding","gives Transversives slide, high DR while sliding, not really practical","81","D"
+Crucible","29","Shoot to Scoot","4","survivability","weapon damage","slides are 33% longer and give 50% DR while sliding","gives Transversives slide, high DR while sliding, not really practical","82","D"
 "","","Iron Battalion
 Iron Banner","29","Primary Honing","2","stats
-damage","passive","? handling, ? reload, and ?% non-boss damage per ? Weapons for primaries","free stat increase that is completely passive on arguably the most stat-sensitive ammo type, free damage as well","82","D"
-"","","Flain
-Sundered Doctrine","29","Sinew Stitching","2","splash","? damage taken","Threadling","damage requirement is seemingly very high, much better passive damage set bonuses exist","83","D"
+damage","passive","? handling, ? reload, and ?% non-boss damage per ? Weapons for primaries","free stat increase that is completely passive on arguably the most stat-sensitive ammo type, free damage as well","83","D"
 "","","Wildwood
 EDZ","29","Field Expertise","4","stats
 damage","ADS precision kills (5 stacks)","up to ? reload, ? aim assist, 10% non-boss damage for 15s (ends early on body kills)","10% is almost unnoticeable for non-boss, also requires only crit kills","84","D"
