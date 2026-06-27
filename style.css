@@ -114,6 +114,24 @@ h1.subtext a {
     background: #dc2626;
 }
 
+.primary-btn {
+    background: var(--accent-color);
+}
+
+.primary-btn:hover {
+    background: var(--accent-hover);
+}
+
+.buttons-container {
+    display: flex;
+    gap: 8px;
+}
+
+.buttons-container .clear-btn {
+    flex: 1;
+    width: 50%;
+}
+
 .query-outputs {
     flex: 1;
     display: flex;

@@ -83,6 +83,9 @@ const init = () => {
     const clearBtn = document.getElementById('clearBtn');
     clearBtn.addEventListener('click', clearAll);
 
+    const importExportBtn = document.getElementById('importExportBtn');
+    importExportBtn.addEventListener('click', importExportState);
+
     const tbody = document.getElementById('tableBody');
     tbody.addEventListener('click', handleTableClick);
     tbody.addEventListener('change', handleTableChange);
@@ -166,6 +169,39 @@ const clearAll = () => {
             };
         }
         saveAndRender();
+    }
+};
+
+/**
+ * Import or export state using window.prompt
+ */
+const importExportState = () => {
+    const currentStateJson = localStorage.getItem(STATE_KEY) || '{}';
+
+    // Show current settings in prompt; user can copy or paste new settings
+    const userInput = prompt('Copy your settings, or paste previously exported settings to restore them:', currentStateJson);
+
+    if (userInput === null) return; // User cancelled
+
+    // If user didn't change the data, they just copied it
+    if (userInput === currentStateJson) return;
+
+    // Otherwise, try to import the pasted data
+    try {
+        const importedState = JSON.parse(userInput);
+
+        // Validate that it looks like state data
+        if (typeof importedState === 'object' && importedState !== null) {
+            localStorage.setItem(STATE_KEY, JSON.stringify(importedState));
+            loadState();
+            renderTable();
+            updateQueries();
+            alert('Settings imported successfully!');
+        } else {
+            alert('Invalid settings data. Please ensure you pasted the complete exported string.');
+        }
+    } catch (e) {
+        alert('Error parsing settings: ' + e.message + '. Please ensure you pasted the complete exported string.');
     }
 };
 
