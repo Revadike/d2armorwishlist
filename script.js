@@ -17,6 +17,14 @@ const ARCHETYPE_DEFS = {
     'powerhouse': { id: 'powerhouse', name: 'Powerhouse', p: 'Weapons', s: 'Super' }
 };
 
+const SETNAME_OVERRIDES = new Map([
+    ['iron panoply', 'iron panoply set'],
+    ['iron battalion', 'iron battalion set'],
+    ['wayward psyche', 'wayward psyche set'],
+    ['smoke jumper', 'smoke jumper set'],
+    ['disaster corps', 'disaster corps set']
+]);
+
 // Memory object to remember the last chosen tertiaries for each archetype globally
 const lastUsedTertiaries = {};
 
@@ -917,7 +925,8 @@ const updateQueries = () => {
         // own (often empty) stat filters, nullifying the 4pc's stat restrictions.
         if (is2pcs && want4pcs) continue;
 
-        const parts = [`exactperk:"${exactName}"`];
+        const queryName = SETNAME_OVERRIDES.get(exactName) || exactName;
+        const parts = [`exactperk:"${queryName}"`];
 
         if (is2pcs && !want4pcs && slotAssignments[key] && slotAssignments[key].length > 0) {
             parts.push(`(${slotAssignments[key].map(s => `is:${s}`).join(' or ')})`);
