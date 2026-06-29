@@ -122,6 +122,15 @@ h1.subtext a {
     background: var(--accent-hover);
 }
 
+.checkboxes-container {
+    display: flex;
+    gap: 8px;
+}
+
+.checkboxes-container label {
+    white-space: nowrap;
+}
+
 .buttons-container {
     display: flex;
     gap: 8px;

@@ -41,6 +41,7 @@ const EXOTICS = [
 let rawData = [];
 let state = {
     tier5: true,
+    keep: true,
     sortCol: 'Set',
     sortAsc: true,
     prefs: {}
@@ -59,6 +60,7 @@ const loadState = () => {
         if (saved) {
             const parsed = JSON.parse(saved);
             state.tier5 = parsed.tier5 !== undefined ? parsed.tier5 : true;
+            state.keep = parsed.keep !== undefined ? parsed.keep : true;
             state.prefs = parsed.prefs || {};
             state.sortCol = parsed.sortCol || 'Set';
             state.sortAsc = parsed.sortAsc !== undefined ? parsed.sortAsc : true;
@@ -85,6 +87,13 @@ const init = () => {
     tier5Toggle.checked = state.tier5;
     tier5Toggle.addEventListener('change', (e) => {
         state.tier5 = e.target.checked;
+        saveAndRender();
+    });
+
+    const keepToggle = document.getElementById('keepToggle');
+    keepToggle.checked = state.keep;
+    keepToggle.addEventListener('change', (e) => {
+        state.keep = e.target.checked;
         saveAndRender();
     });
 
@@ -974,8 +983,22 @@ const updateQueries = () => {
     }
 
     const combinedOr = rowQueries.length > 1 ? `(${rowQueries.join(' or ')})` : rowQueries[0];
-    posTextarea.value = state.tier5 ? `${baseFilters} tier:5 ${combinedOr}` : `${baseFilters} ${combinedOr}`;
-    negTextarea.value = state.tier5 ? `${baseFilters} (-tier:5 or -${combinedOr})` : `${baseFilters} -${combinedOr}`;
+
+    // Build selection filter with optional tier5 constraint
+    const selectionQuery = state.tier5 ? `tier:5 ${combinedOr}` : combinedOr;
+    const selectionNegQuery = state.tier5 ? `(-tier:5 or -${combinedOr})` : `-${combinedOr}`;
+
+    // Apply keep tag logic
+    const posFilter = state.keep
+        ? `(${selectionQuery} or tag:keep)`
+        : selectionQuery;
+
+    const negFilter = state.keep
+        ? `(${selectionNegQuery} -tag:keep)`
+        : selectionNegQuery;
+
+    posTextarea.value = `${baseFilters} ${posFilter}`;
+    negTextarea.value = `${baseFilters} ${negFilter}`;
 };
 
 window.addEventListener('load', init);
