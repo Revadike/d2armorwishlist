@@ -42,7 +42,7 @@ King's Fall","29","Iron Sharpens Iron","2","ammo","elite+ kill","additive ~12% s
 Last Wish","29","Taken Armaments","4","ammo","grenade kills","~3.5x heavy ammo progress","makes Getaway warlock an ammo printer with mod support","15","A"
 "","","Techeun's Regalia
 Shattered Throne","29","Truth to Power","4","survivability
-ability","dealing damage (1), kills (20-35), or finishers (60-90), up to 999 stacks","up to 15% DR, additive CDR at max stacks (similar to empowering rift)","consistent DR source that doesn't require much, but doesn't have a high ceiling and is tied to 4pc.","16","A"
+ability","dealing damage (1), kills (20-35), or finishers (60-90), up to 999 stacks","up to 15% DR, +50% grenade/melee regen, +35% class regen","consistent DR source that doesn't require much, but doesn't have a high ceiling and is tied to 4pc.","16","A"
 "","","Sage Protector
 Equilibrium","28","Combat Meditation","2","ability","sword damage","5% grenade and class
 10% if Blade Focus active","enables ability spam strategies using high hit count swords like casters and Ergo, also decent for neutral depending on build","17","A"
@@ -65,9 +65,9 @@ splash","orb/elemental pickup with stacks
 Tangle destruction with stacks
 critical health
 ","?% more ability energy
-36x Tangle damage (any stacks)
+4.5x Tangle damage (5+ stacks)
 4 orbs (10 stacks)
-","currently disabled due to damage bug; niche use in getting supers back fast in optimized content (think SES pickups)","24","B"
+","niche use in getting supers back fast in optimized content (think SES pickups), also usable with Whirling Maelstrom","24","B"
 "","","Ferropotent
 Solo/Fireteam Ops","28","Rapid Repair","2","survivability","shield healing (except orb pickup), once per full heal","10% DR and ?% flinch resist for 7s","non-stackable low DR, sort of universal but full healing requirement limits uptime","25","B"
 "","20","Techsec
