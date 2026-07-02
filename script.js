@@ -39,24 +39,157 @@ const EXOTICS = [
 ];
 
 let rawData = [];
+let syncingFromRemote = false; // prevent push while pulling remote state on startup
 let state = {
     tier5: true,
     keep: true,
     sortCol: 'Set',
     sortAsc: true,
-    prefs: {}
+    prefs: {},
+    mantledb: null
 };
 let slotAssignments = {};
 let conflicts = {};
 
-const STATE_KEY = 'dimConfigState';
+const STATE_KEY = 'd2asw';
+const LEGACY_STATE_KEY = 'dimConfigState';
+
+const MANTLE_BASE_URL = 'https://mantledb.sh/v2';
+const MANTLE_PATH = 'state';
+
+/**
+ * Read state from localStorage with backwards compatibility
+ * Checks new key first, falls back to legacy key
+ */
+const getStateFromStorage = () => {
+    let saved = localStorage.getItem(STATE_KEY);
+    if (!saved) {
+        saved = localStorage.getItem(LEGACY_STATE_KEY);
+    }
+    return saved;
+};
+
+/**
+ * Generate a random MantleDB namespace key
+ * @returns {string} A unique namespace string
+ */
+const generateStorageKey = () => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = 'd2asw-';
+    for (let i = 0; i < 24; i++) {
+        result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
+};
+
+/**
+ * Claim a MantleDB namespace and return the secret key
+ * @param {string} ns - Namespace to claim
+ * @returns {Promise<string>} The secret key
+ */
+const claimMantleNamespace = async (ns) => {
+    const res = await fetch(`${MANTLE_BASE_URL}/claim/${ns}`);
+    if (!res.ok) throw new Error(`Failed to claim namespace: ${res.status}`);
+    const data = await res.json();
+    return data.key;
+};
+
+/**
+ * Show a brief sync status message near the import/export button
+ * @param {string} msg - Message to display
+ * @param {boolean} [isError=false] - Show in error color
+ */
+const showSyncStatus = (() => {
+    let timer = null;
+    return (msg, isError = false) => {
+        const el = document.getElementById('syncStatus');
+        if (!el) return;
+        if (timer) clearTimeout(timer);
+        el.textContent = msg;
+        el.classList.toggle('error', isError);
+        el.classList.add('visible');
+        timer = setTimeout(() => el.classList.remove('visible'), 3000);
+    };
+})();
+
+/**
+ * Initialize MantleDB: generate and claim a namespace if not already done
+ */
+const initMantledb = async () => {
+    if (state.mantledb) return;
+    const ns = generateStorageKey();
+    try {
+        const key = await claimMantleNamespace(ns);
+        state.mantledb = { ns, key };
+        saveState();
+    } catch (e) {
+        showSyncStatus('Sync unavailable — changes saved locally only', true);
+    }
+};
+
+/**
+ * Push current state to MantleDB (fire-and-forget)
+ * On auth failure, silently drops the broken config and claims a fresh namespace.
+ */
+const pushToMantledb = async () => {
+    if (!state.mantledb || syncingFromRemote) return;
+    const { ns, key } = state.mantledb;
+    const payload = { ...state };
+    delete payload.mantledb;
+    try {
+        const res = await fetch(`${MANTLE_BASE_URL}/${ns}/${MANTLE_PATH}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Mantle-Key': key
+            },
+            body: JSON.stringify(payload)
+        });
+        // If the namespace was reset while this push was in flight, silently discard the result
+        if (state.mantledb?.ns !== ns) return;
+        if (res.status === 401 || res.status === 403) {
+            // Stored key is invalid — drop it and silently reconnect with a fresh namespace
+            state.mantledb = null;
+            localStorage.setItem(STATE_KEY, JSON.stringify(state));
+            showSyncStatus('Sync reconnecting…');
+            await initMantledb();
+        } else if (!res.ok) {
+            showSyncStatus('Sync failed', true);
+        }
+    } catch (e) {
+        // If the namespace was reset while this push was in flight, silently discard the result
+        if (state.mantledb?.ns !== ns) return;
+        showSyncStatus('Sync failed', true);
+    }
+};
+
+// Thrown when the server rejects the key (401/403) — a permanent failure requiring a new namespace
+class MantleAuthError extends Error { }
+
+/**
+ * Pull state from MantleDB
+ * Returns null if no entry exists yet (404) — not an error, just an empty namespace.
+ * Throws MantleAuthError on 401/403 (bad key). Throws Error on other failures.
+ * @param {string} ns - Namespace
+ * @param {string} key - Secret key
+ * @returns {Promise<object|null>}
+ */
+const pullFromMantledb = async (ns, key) => {
+    const res = await fetch(`${MANTLE_BASE_URL}/${ns}/${MANTLE_PATH}`, {
+        headers: { 'X-Mantle-Key': key }
+    });
+    if (res.status === 404) return null;
+    if (res.status === 401 || res.status === 403) throw new MantleAuthError('Invalid sync key');
+    if (!res.ok) throw new Error(`Sync error (${res.status})`);
+    return await res.json();
+};
 
 /**
  * Load application state from localStorage
  */
 const loadState = () => {
     try {
-        const saved = localStorage.getItem(STATE_KEY);
+        const saved = getStateFromStorage();
         if (saved) {
             const parsed = JSON.parse(saved);
             state.tier5 = parsed.tier5 !== undefined ? parsed.tier5 : true;
@@ -64,6 +197,7 @@ const loadState = () => {
             state.prefs = parsed.prefs || {};
             state.sortCol = parsed.sortCol || 'Set';
             state.sortAsc = parsed.sortAsc !== undefined ? parsed.sortAsc : true;
+            state.mantledb = parsed.mantledb || null;
         }
     } catch (e) {
         console.error('Error loading state:', e);
@@ -71,16 +205,17 @@ const loadState = () => {
 };
 
 /**
- * Save application state to localStorage
+ * Save application state to localStorage and push to MantleDB
  */
 const saveState = () => {
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    pushToMantledb();
 };
 
 /**
  * Initialize the application
  */
-const init = () => {
+const init = async () => {
     loadState();
 
     const tier5Toggle = document.getElementById('tier5Toggle');
@@ -106,6 +241,37 @@ const init = () => {
     const tbody = document.getElementById('tableBody');
     tbody.addEventListener('click', handleTableClick);
     tbody.addEventListener('change', handleTableChange);
+
+    // Pull remote state before parsing CSV so we never push stale local data
+    if (state.mantledb) {
+        syncingFromRemote = true;
+        try {
+            const remoteState = await pullFromMantledb(state.mantledb.ns, state.mantledb.key);
+            if (remoteState !== null) {
+                const mantledb = state.mantledb;
+                Object.assign(state, remoteState);
+                state.mantledb = mantledb; // preserve local mantledb config
+                localStorage.setItem(STATE_KEY, JSON.stringify(state));
+                showSyncStatus('Settings synced');
+            }
+            // null = no remote entry yet (new/cleared namespace) — local state is already correct
+        } catch (e) {
+            if (e instanceof MantleAuthError) {
+                // Stored key has gone stale — drop it and claim a fresh namespace
+                state.mantledb = null;
+                syncingFromRemote = false;
+                showSyncStatus('Sync reconnecting…');
+                await initMantledb();
+            } else {
+                // Transient network error — proceed with local state
+                showSyncStatus('Sync unavailable, using local settings', true);
+            }
+        } finally {
+            syncingFromRemote = false;
+        }
+    } else {
+        await initMantledb();
+    }
 
     Papa.parse(CSV_URL, {
         download: true,
@@ -174,9 +340,9 @@ const saveAndRender = () => {
 };
 
 /**
- * Clear all selections with confirmation
+ * Clear all selections with confirmation and generate a new MantleDB namespace
  */
-const clearAll = () => {
+const clearAll = async () => {
     if (confirm('Are you sure you want to clear all selections?')) {
         for (let k in state.prefs) {
             state.prefs[k] = {
@@ -185,15 +351,39 @@ const clearAll = () => {
                 combineWith: []
             };
         }
-        saveAndRender();
+        state.mantledb = null;
+        // Persist the cleared state immediately so a page refresh doesn't restore old settings
+        localStorage.setItem(STATE_KEY, JSON.stringify(state));
+        // initMantledb claims a new namespace and calls saveState, which pushes the cleared state
+        await initMantledb();
+        optimizeSlots();
+        renderTable();
+        updateQueries();
+        // Only show success if initMantledb actually succeeded; failure shows its own message
+        if (state.mantledb) {
+            showSyncStatus('New sync profile created');
+        }
     }
 };
 
 /**
- * Import or export state using window.prompt
+ * Apply a freshly loaded state to the DOM and table, filling any missing pref keys.
+ * Call after any loadState() that happens outside of init().
  */
-const importExportState = () => {
-    const currentStateJson = localStorage.getItem(STATE_KEY) || '{}';
+const applyLoadedState = () => {
+    document.getElementById('tier5Toggle').checked = state.tier5;
+    document.getElementById('keepToggle').checked = state.keep;
+    processData(); // fill in any prefs keys missing from imported data
+    optimizeSlots();
+    renderTable();
+    updateQueries();
+};
+
+/**
+ * Import or export state using window.prompt, with MantleDB sync on import
+ */
+const importExportState = async () => {
+    const currentStateJson = getStateFromStorage() || '{}';
 
     // Show current settings in prompt; user can copy or paste new settings
     const userInput = prompt('Copy your settings, or paste previously exported settings to restore them:', currentStateJson);
@@ -209,11 +399,52 @@ const importExportState = () => {
 
         // Validate that it looks like state data
         if (typeof importedState === 'object' && importedState !== null) {
-            localStorage.setItem(STATE_KEY, JSON.stringify(importedState));
-            loadState();
-            renderTable();
-            updateQueries();
-            alert('Settings imported successfully!');
+            // If the imported state includes a MantleDB config, try to sync from the cloud
+            if (importedState.mantledb && importedState.mantledb.ns && importedState.mantledb.key) {
+                try {
+                    const remoteState = await pullFromMantledb(importedState.mantledb.ns, importedState.mantledb.key);
+                    if (remoteState !== null) {
+                        // Remote has state — use it as it's the most up-to-date
+                        const mergedState = { ...remoteState, mantledb: importedState.mantledb };
+                        localStorage.setItem(STATE_KEY, JSON.stringify(mergedState));
+                    } else {
+                        // 404: valid namespace/key but nothing pushed yet — use imported JSON
+                        localStorage.setItem(STATE_KEY, JSON.stringify(importedState));
+                    }
+                    loadState();
+                    applyLoadedState();
+                    showSyncStatus('Settings synced from cloud');
+                } catch (syncError) {
+                    if (syncError instanceof MantleAuthError) {
+                        // Bad key in the pasted JSON — strip mantledb, import prefs only, get fresh namespace
+                        const { mantledb: _m, ...stateWithoutMantle } = importedState;
+                        localStorage.setItem(STATE_KEY, JSON.stringify(stateWithoutMantle));
+                        loadState();
+                        applyLoadedState();
+                        await initMantledb();
+                        // Only show success if a new namespace was actually claimed; failure shows its own message
+                        if (state.mantledb) {
+                            showSyncStatus('Settings imported (sync invalid, new profile created)');
+                        }
+                    } else {
+                        // Transient network error — use imported JSON as-is, sync will retry on next save
+                        localStorage.setItem(STATE_KEY, JSON.stringify(importedState));
+                        loadState();
+                        applyLoadedState();
+                        showSyncStatus('Settings imported (sync temporarily unavailable)', true);
+                    }
+                }
+            } else {
+                // No MantleDB config in import — apply it and start a fresh namespace
+                localStorage.setItem(STATE_KEY, JSON.stringify(importedState));
+                loadState();
+                applyLoadedState();
+                await initMantledb(); // claim a new namespace so future changes sync
+                // Only show success if a namespace was actually claimed; failure shows its own message
+                if (state.mantledb) {
+                    showSyncStatus('Settings imported');
+                }
+            }
         } else {
             alert('Invalid settings data. Please ensure you pasted the complete exported string.');
         }
