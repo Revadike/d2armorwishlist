@@ -37,9 +37,9 @@ Duality","29","Bittersweet","4","survivability","weapon stow","35 / 65 / 87.5 / 
 "","3","AION Adapter
 Kepler - Mythic","27","Force Absorption","2","survivability","micro-missile, rocket, or GL kill","20% splash DR and 60% self explosive DR for 15s","splash is a fair amount of incoming damage, but overshadowed by other more universal DR options","13","A"
 "","","Oryx's Memory
-King's Fall","29","Iron Sharpens Iron","2","ammo","elite+ kill","additive ~12% special ammo progress, ~8% heavy ammo progress","still pretty solid post-nerf in elite-heavy encounters, just not overpowered, worse than Europa 2pc. with lower elite presence","14","A"
+King's Fall","29","Iron Sharpens Iron","2","ammo","elite+ kill","additive 12% special ammo progress, 7.5% heavy ammo progress","still pretty solid post-nerf in elite-heavy encounters, just not overpowered, worse than Europa 2pc. with lower elite presence","14","A"
 "","","Great Hunt
-Last Wish","29","Taken Armaments","4","ammo","grenade kills","~3.5x heavy ammo progress","makes Getaway warlock an ammo printer with mod support","15","A"
+Last Wish","29","Taken Armaments","4","ammo","grenade kills","additive 10% heavy ammo progress","makes Getaway warlock an ammo printer with mod support","15","A"
 "","","Techeun's Regalia
 Shattered Throne","29","Truth to Power","4","survivability
 ability","dealing damage (1), kills (20-35), or finishers (60-90), up to 999 stacks","up to 15% DR, +50% grenade/melee regen, +35% class regen","consistent DR source that doesn't require much, but doesn't have a high ceiling and is tied to 4pc.","16","A"
@@ -136,7 +136,7 @@ ammo","elite+ finisher","16% additional special progress and 35 HP","for finishe
 Pit of Heresy","29","Melee Conduction","4","damage","melee hits with Radiant, Restoration, or Cure","28 damage 7m 30-40 scorch explosion on hit, 1s ICD","cool for buildcrafting, unfortunately splash isn't insane enough to outdo having constant DR","53","C"
 "","","Thunderhead
 Neomuna","29","Lethal Weave","4","ability
-ammo","unraveled kill","?% grenade energy, ?% special ammo progress if grenade full","suits Prismatic hunter playstyle pretty well, have to forgo other 2pc. DR options, but potentially worth a look","54","C"
+ammo","unraveled kill","10% grenade energy, +10% special ammo progress if grenade full","suits Prismatic hunter playstyle pretty well, have to forgo other 2pc. DR options, but potentially worth a look","54","C"
 "","","Dreambane
 Moon","29","Nightmarish Resilience","4","survivability","8 weapon damage instances (0.45s ICD) within 3s of each or kill with Unstable Essence","20 HP and begins health regen, 2s ICD","similar to PoH 2pc., except healing effect cannot be stowed and is mostly passive off of sprees","55","C"
 "","","Flain
