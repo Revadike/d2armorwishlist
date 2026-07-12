@@ -40,13 +40,15 @@ const EXOTICS = [
 
 let rawData = [];
 let syncingFromRemote = false; // prevent push while pulling remote state on startup
+let lastPulledRemoteTimestamp = null; // track remote timestamp to prevent overwriting with older push
 let state = {
     tier5: true,
     keep: true,
     sortCol: 'Set',
     sortAsc: true,
     prefs: {},
-    mantledb: null
+    mantledb: null,
+    lastUpdated: Date.now() // timestamp of last local change
 };
 let slotAssignments = {};
 let conflicts = {};
@@ -121,6 +123,7 @@ const initMantledb = async () => {
     try {
         const key = await claimMantleNamespace(ns);
         state.mantledb = { ns, key };
+        lastPulledRemoteTimestamp = null; // Reset: we have no remote state yet
         saveState();
     } catch (e) {
         showSyncStatus('Sync unavailable — changes saved locally only', true);
@@ -128,12 +131,24 @@ const initMantledb = async () => {
 };
 
 /**
- * Push current state to MantleDB (fire-and-forget)
- * On auth failure, silently drops the broken config and claims a fresh namespace.
+ * Push current state to MantleDB with timestamp conflict checking
+ * Never overwrites remote data that is newer. On auth failure, claims fresh namespace.
  */
 const pushToMantledb = async () => {
     if (!state.mantledb || syncingFromRemote) return;
     const { ns, key } = state.mantledb;
+    const localTime = state.lastUpdated;
+    const remoteTime = lastPulledRemoteTimestamp;
+    
+    // SAFETY: Don't push if we haven't pulled yet (remoteTime = null), or if remote is newer
+    // We can only push if: (1) we've synced at least once AND (2) local is newer than remote
+    if (remoteTime !== null && remoteTime > localTime) {
+        // Remote is newer: don't overwrite it
+        console.warn('Push blocked: remote state is newer than local');
+        showSyncStatus('Remote data is newer — not overwriting', true);
+        return;
+    }
+    
     const payload = { ...state };
     delete payload.mantledb;
     try {
@@ -150,10 +165,14 @@ const pushToMantledb = async () => {
         if (res.status === 401 || res.status === 403) {
             // Stored key is invalid — drop it and silently reconnect with a fresh namespace
             state.mantledb = null;
+            lastPulledRemoteTimestamp = null;
             localStorage.setItem(STATE_KEY, JSON.stringify(state));
             showSyncStatus('Sync reconnecting…');
             await initMantledb();
-        } else if (!res.ok) {
+        } else if (res.ok) {
+            // Track the timestamp we just pushed
+            lastPulledRemoteTimestamp = localTime;
+        } else {
             showSyncStatus('Sync failed', true);
         }
     } catch (e) {
@@ -185,6 +204,33 @@ const pullFromMantledb = async (ns, key) => {
 };
 
 /**
+ * Merge remote state with local state based on timestamps
+ * Never overwrites remote if local is older. Never overwrites local if remote is older.
+ * @param {object} localState - Current local state
+ * @param {object} remoteState - State pulled from remote
+ * @returns {object} Merged state
+ */
+const mergeStates = (localState, remoteState) => {
+    const localTime = localState.lastUpdated || 0;
+    const remoteTime = remoteState.lastUpdated || 0;
+    
+    if (remoteTime > localTime) {
+        // Remote is newer: use remote data, preserve local mantledb config
+        const mantledb = localState.mantledb;
+        const merged = { ...remoteState };
+        merged.mantledb = mantledb;
+        lastPulledRemoteTimestamp = remoteTime;
+        return merged;
+    } else if (remoteTime === localTime && remoteTime > 0) {
+        // Same timestamp: merge prefs, keep local for other fields (local wins ties)
+        return localState;
+    } else {
+        // Local is newer or remote has no timestamp: keep local
+        return localState;
+    }
+};
+
+/**
  * Load application state from localStorage
  */
 const loadState = () => {
@@ -198,6 +244,7 @@ const loadState = () => {
             state.sortCol = parsed.sortCol || 'Set';
             state.sortAsc = parsed.sortAsc !== undefined ? parsed.sortAsc : true;
             state.mantledb = parsed.mantledb || null;
+            state.lastUpdated = parsed.lastUpdated || Date.now();
         }
     } catch (e) {
         console.error('Error loading state:', e);
@@ -206,8 +253,10 @@ const loadState = () => {
 
 /**
  * Save application state to localStorage and push to MantleDB
+ * Updates lastUpdated timestamp to current time
  */
 const saveState = () => {
+    state.lastUpdated = Date.now();
     localStorage.setItem(STATE_KEY, JSON.stringify(state));
     pushToMantledb();
 };
@@ -248,9 +297,9 @@ const init = async () => {
         try {
             const remoteState = await pullFromMantledb(state.mantledb.ns, state.mantledb.key);
             if (remoteState !== null) {
-                const mantledb = state.mantledb;
-                Object.assign(state, remoteState);
-                state.mantledb = mantledb; // preserve local mantledb config
+                // Merge using timestamp comparison: never blindly overwrite
+                const merged = mergeStates(state, remoteState);
+                Object.assign(state, merged);
                 localStorage.setItem(STATE_KEY, JSON.stringify(state));
                 showSyncStatus('Settings synced');
             }
@@ -259,6 +308,7 @@ const init = async () => {
             if (e instanceof MantleAuthError) {
                 // Stored key has gone stale — drop it and claim a fresh namespace
                 state.mantledb = null;
+                lastPulledRemoteTimestamp = null;
                 syncingFromRemote = false;
                 showSyncStatus('Sync reconnecting…');
                 await initMantledb();
@@ -352,7 +402,9 @@ const clearAll = async () => {
             };
         }
         state.mantledb = null;
+        lastPulledRemoteTimestamp = null;
         // Persist the cleared state immediately so a page refresh doesn't restore old settings
+        state.lastUpdated = Date.now();
         localStorage.setItem(STATE_KEY, JSON.stringify(state));
         // initMantledb claims a new namespace and calls saveState, which pushes the cleared state
         await initMantledb();
@@ -380,7 +432,8 @@ const applyLoadedState = () => {
 };
 
 /**
- * Import or export state using window.prompt, with MantleDB sync on import
+ * Import or export state using window.prompt, with timestamp-aware MantleDB sync on import
+ * Never overwrites newer data with older imports
  */
 const importExportState = async () => {
     const currentStateJson = getStateFromStorage() || '{}';
@@ -404,12 +457,16 @@ const importExportState = async () => {
                 try {
                     const remoteState = await pullFromMantledb(importedState.mantledb.ns, importedState.mantledb.key);
                     if (remoteState !== null) {
-                        // Remote has state — use it as it's the most up-to-date
-                        const mergedState = { ...remoteState, mantledb: importedState.mantledb };
-                        localStorage.setItem(STATE_KEY, JSON.stringify(mergedState));
+                        // Remote has state — merge using timestamps, never blindly overwrite
+                        // This ensures imported old exports don't overwrite newer remote data
+                        const merged = mergeStates(importedState, remoteState);
+                        merged.mantledb = importedState.mantledb;
+                        localStorage.setItem(STATE_KEY, JSON.stringify(merged));
+                        lastPulledRemoteTimestamp = remoteState.lastUpdated || null;
                     } else {
                         // 404: valid namespace/key but nothing pushed yet — use imported JSON
                         localStorage.setItem(STATE_KEY, JSON.stringify(importedState));
+                        lastPulledRemoteTimestamp = null;
                     }
                     loadState();
                     applyLoadedState();
@@ -418,7 +475,10 @@ const importExportState = async () => {
                     if (syncError instanceof MantleAuthError) {
                         // Bad key in the pasted JSON — strip mantledb, import prefs only, get fresh namespace
                         const { mantledb: _m, ...stateWithoutMantle } = importedState;
+                        // Ensure imported state has fresh timestamp
+                        stateWithoutMantle.lastUpdated = Date.now();
                         localStorage.setItem(STATE_KEY, JSON.stringify(stateWithoutMantle));
+                        lastPulledRemoteTimestamp = null;
                         loadState();
                         applyLoadedState();
                         await initMantledb();
@@ -428,7 +488,10 @@ const importExportState = async () => {
                         }
                     } else {
                         // Transient network error — use imported JSON as-is, sync will retry on next save
+                        // Ensure it has a fresh timestamp since we couldn't verify with remote
+                        importedState.lastUpdated = Date.now();
                         localStorage.setItem(STATE_KEY, JSON.stringify(importedState));
+                        lastPulledRemoteTimestamp = null;
                         loadState();
                         applyLoadedState();
                         showSyncStatus('Settings imported (sync temporarily unavailable)', true);
@@ -436,7 +499,10 @@ const importExportState = async () => {
                 }
             } else {
                 // No MantleDB config in import — apply it and start a fresh namespace
+                // Ensure imported state has fresh timestamp
+                importedState.lastUpdated = Date.now();
                 localStorage.setItem(STATE_KEY, JSON.stringify(importedState));
+                lastPulledRemoteTimestamp = null;
                 loadState();
                 applyLoadedState();
                 await initMantledb(); // claim a new namespace so future changes sync
