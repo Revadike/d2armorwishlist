@@ -160,7 +160,7 @@ Vow of the Disciple","29","Siphoning Touch","4","survivability","weapon hits or 
 "","","Eutechnology
 Arena/Pinnacle Ops","29","Gift of the Ley Lines","2","ability","3 void kills within 5?s of each","Void Breach (?s ICD)","not the most universally valuable elemental pickup type, spree requirement is a little hefty","64","C"
 "","","Triumphal Anthem
-Crucible","29","Scoot to Loot","2","refill","sliding","picks up ammo within 15m and gives ? reload and ? handling for ?s","Gravity Well-type effect, not really sure where this would be useful outside of getting OoB ammo off hunter","65","C"
+Crucible","29","Scoot to Loot","2","refill","sliding","picks up ammo within 15m and gives 25 reload and 25 handling for ?s","Gravity Well-type effect, not really sure where this would be useful outside of getting OoB ammo off hunter","65","C"
 "","","Legacy's Oath
 Deep Stone Crypt","29","God-like Judgment","4","damage","critical health or super cast","570 damage (+0) heat-seeking missile array, no ICD","entire missile array does the same damage as a single adaptive sniper shot","66","C"
 "","","Veritas
@@ -220,7 +220,7 @@ Garden of Salvation","29","Network Admin","2","stats","being within 15m of ally
 being within 15m of Network Admin","? handling and ? reload
 ? Health","generally unnoticeable / QoL stats, even if pretty easy to activate","89","E"
 "","","Cyberserpent Null
-Gambit","29","Adrenal Rush","2","stats","sprinting for 0.5s","? reload and ? handling for ?s, ?s extension on kill","free stats, very easy to activate, but no strongly tangible PvE impact","90","E"
+Gambit","29","Adrenal Rush","2","stats","sprinting for 0.5s","30 reload, 0.95x reload duration, and 40 handling for ?s, ?s extension on kill","free stats, very easy to activate, but no strongly tangible PvE impact","90","E"
 "","13","Last Discipline
 Crucible","27","Terminal Velocity","2","stats","primary kill","20 reload and 0.95x reload duration for primaries for 6s","free reload QoL for primary weapons, nothing beyond that","91","E"
 "","15","Lustrous
