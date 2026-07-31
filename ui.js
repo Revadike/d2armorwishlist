@@ -46,21 +46,21 @@ const saveAndRender = () => {
 };
 
 /**
- * Clear all selections with confirmation.
- * Keeps the sync profile: the clear is a normal edit that syncs to other
- * devices instead of silently abandoning the namespace they still use.
+ * Reset sync profile: create a brand new profile and move old one to backup.
+ * This is useful if you want a fresh start without losing the ability to
+ * restore your old backup later.
  */
-const clearAll = () => {
-    if (confirm('Are you sure you want to clear all selections? This also clears them on your synced devices.')) {
-        for (let k in state.prefs) {
-            state.prefs[k] = {
-                wanted: false,
-                archetypes: {},
-                combineWith: []
-            };
-            markPrefEdited(k);
-        }
-        saveAndRender();
+const resetProfile = async () => {
+    if (!confirm('Reset to a new sync profile? Your old profile will be backed up locally in case you change your mind.')) {
+        return;
+    }
+    try {
+        showSyncStatus('Resetting profile…');
+        await resetSyncProfile();
+        showSyncStatus('Profile reset — syncing…');
+    } catch (e) {
+        console.error('Reset failed:', e);
+        showSyncStatus('Reset failed: ' + e.message, true);
     }
 };
 
@@ -71,7 +71,9 @@ const clearAll = () => {
 const applyLoadedState = () => {
     document.getElementById('tier5Toggle').checked = state.tier5;
     document.getElementById('keepToggle').checked = state.keep;
-    processData(); // fill in any prefs keys missing from imported data
+    document.getElementById('discardDupeToggle').checked = state.discardDupeOnly;
+    document.getElementById('classSelect').value = state.wishlistClass;
+    processData(); // fill in any prefs keys missing from imported data, for every class
     optimizeSlots();
     renderTable();
     updateQueries();
@@ -81,7 +83,10 @@ const applyLoadedState = () => {
  * Import or export state
  */
 const importExportState = () => {
-    const currentStateJson = JSON.stringify(state);
+    // Export: strip mantledb so user can load old backups without jumping profiles
+    const exportState = JSON.parse(JSON.stringify(state));
+    delete exportState.mantledb;
+    const currentStateJson = JSON.stringify(exportState);
 
     const userInput = prompt(
         'Copy your settings, or paste previously exported settings to restore them:',
@@ -100,6 +105,12 @@ const importExportState = () => {
             alert('Invalid settings data.');
             return;
         }
+
+        // Normalize to the current multi-class shape, migrating any legacy
+        // single-wishlist export by duplicating it into every class.
+        imported.wishlists = resolveWishlists(imported);
+        imported.wishlistClass = WISHLIST_CLASSES.includes(imported.wishlistClass) ? imported.wishlistClass : 'any';
+        imported.discardDupeOnly = imported.discardDupeOnly !== undefined ? imported.discardDupeOnly : true;
 
         // If the import includes a MantleDB config, we can sync from cloud.
         // Merge the import using per-field timestamps: newer remote data is never
@@ -145,9 +156,11 @@ const importExportState = () => {
             // No MantleDB config in import — apply it, keep local namespace
             imported.mantledb = state.mantledb;
             Object.assign(state, imported);
-            Object.keys(imported.prefs || {}).forEach(k => {
-                state.prefsUpdated[k] = nextEditTimestamp();
-            });
+            for (const cls of WISHLIST_CLASSES) {
+                Object.keys(state.wishlists[cls].prefs || {}).forEach(k => {
+                    state.wishlists[cls].prefsUpdated[k] = nextEditTimestamp();
+                });
+            }
             state.settingsUpdated = nextEditTimestamp();
             persistState();
             applyLoadedState();
@@ -678,7 +691,11 @@ const updateQueries = () => {
         rowQueries.push(`(${parts.join(' ')})`);
     }
 
-    const baseFilters = 'is:armor3.0 is:legendary';
+    let baseFilters = 'is:armor3.0 is:legendary';
+    // Class-specific wishlists only apply to armor of that class.
+    if (state.wishlistClass !== 'any') {
+        baseFilters += ` is:${state.wishlistClass}`;
+    }
 
     const posTextarea = document.getElementById('positiveQuery');
     const negTextarea = document.getElementById('negativeQuery');
@@ -704,8 +721,16 @@ const updateQueries = () => {
         ? `(${selectionNegQuery} -tag:keep)`
         : selectionNegQuery;
 
+    // "Discard dupe only" restricts the dismantle query to only suggest
+    // dismantling items that have duplicates (is:dupe), protecting your
+    // only copy from being deleted. Keep query is unaffected.
+    let negBase = baseFilters;
+    if (state.discardDupeOnly) {
+        negBase += ' is:dupe';
+    }
+
     posTextarea.value = `${baseFilters} ${posFilter}`;
-    negTextarea.value = `${baseFilters} ${negFilter}`;
+    negTextarea.value = `${negBase} ${negFilter}`;
 };
 
 /**
@@ -730,8 +755,24 @@ const init = async () => {
         saveAndRender();
     });
 
-    const clearBtn = document.getElementById('clearBtn');
-    clearBtn.addEventListener('click', clearAll);
+    const discardDupeToggle = document.getElementById('discardDupeToggle');
+    discardDupeToggle.checked = state.discardDupeOnly;
+    discardDupeToggle.addEventListener('change', (e) => {
+        state.discardDupeOnly = e.target.checked;
+        markSettingsEdited();
+        saveAndRender();
+    });
+
+    const classSelect = document.getElementById('classSelect');
+    classSelect.value = state.wishlistClass;
+    classSelect.addEventListener('change', (e) => {
+        state.wishlistClass = e.target.value;
+        markSettingsEdited();
+        saveAndRender();
+    });
+
+    const resetBtn = document.getElementById('resetBtn');
+    resetBtn.addEventListener('click', resetProfile);
 
     const importExportBtn = document.getElementById('importExportBtn');
     importExportBtn.addEventListener('click', importExportState);

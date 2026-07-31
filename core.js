@@ -30,6 +30,13 @@ const SETNAME_OVERRIDES = new Map([
     ['disaster corps', 'disaster corps set']
 ]);
 
+const CLASS_LABELS = {
+    any: 'Any Class',
+    hunter: 'Hunter',
+    titan: 'Titan',
+    warlock: 'Warlock'
+};
+
 const ALL_SLOTS = ['helmet', 'gauntlets', 'chest', 'leg', 'classitem'];
 
 const EXOTICS = [
@@ -56,13 +63,18 @@ const processData = () => {
         row.pcsNum = row.Pcs;
         row.key = `${row.exactName}_${row.pcsNum}`;
 
-        if (!state.prefs[row.key]) {
-            state.prefs[row.key] = {
-                wanted: false,
-                archetypes: {},
-                combineWith: []
-            };
-        }
+        // Every class-specific wishlist gets its own default entry so
+        // switching classes never hits a missing pref.
+        WISHLIST_CLASSES.forEach(cls => {
+            const prefs = state.wishlists[cls].prefs;
+            if (!prefs[row.key]) {
+                prefs[row.key] = {
+                    wanted: false,
+                    archetypes: {},
+                    combineWith: []
+                };
+            }
+        });
     });
 };
 

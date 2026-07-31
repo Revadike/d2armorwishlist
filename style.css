@@ -51,17 +51,27 @@ h1 {
     font-size: 1.6em;
 }
 
-h1.subtext {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.9em;
-    margin: 0 0 15px 0;
-    line-height: 0;
+.title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 15px;
 }
 
-h1.subtext a {
+.title-row h1 {
+    margin: 0;
+}
+
+.github-link {
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+    transition: color 0.2s;
+}
+
+.github-link:hover {
     color: var(--accent-color);
-    text-decoration: none;
 }
 
 .top-controls {
@@ -79,7 +89,7 @@ h1.subtext a {
 }
 
 .global-opts {
-    flex: 0 0 240px;
+    flex: 0 0 300px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -99,6 +109,7 @@ h1.subtext a {
 }
 
 .clear-btn {
+    width: 100%;
     padding: 4px;
     background: var(--danger);
     color: #fff;
@@ -122,18 +133,39 @@ h1.subtext a {
     background: var(--accent-hover);
 }
 
-.checkboxes-container {
-    display: flex;
-    gap: 8px;
+.class-select {
+    width: 100%;
+    padding: 4px;
+    background: var(--state-secondary);
+    color: var(--text-main);
+    border: 1px solid var(--state-secondary-border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+    transition: border-color 0.2s;
 }
 
-.checkboxes-container label {
+.class-select:hover {
+    border-color: var(--accent-color);
+}
+
+/* 3 rows x 2 columns: class select + buttons on the left, checkboxes on the right */
+.opts-grid {
+    display: flex;
+    gap: 15px;
+}
+
+.opts-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+}
+
+.opts-col label {
     white-space: nowrap;
-}
-
-.buttons-container {
-    display: flex;
-    gap: 8px;
 }
 
 .sync-status {

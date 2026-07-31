@@ -8,19 +8,48 @@ const MANTLE_PATH = 'state';
 
 const STATE_KEY = 'd2asw';
 const LEGACY_STATE_KEY = 'dimConfigState';
+const STATE_BACKUP_KEY = 'd2asw-backup';
+
+// The wishlist is kept separately per Guardian class. 'any' is the
+// class-agnostic wishlist (no is:<class> filter applied).
+const WISHLIST_CLASSES = ['any', 'hunter', 'titan', 'warlock'];
 
 // Global state shared across all modules
 let state = {
     tier5: true,
     keep: true,
+    discardDupeOnly: true,
+    wishlistClass: 'any',
     sortCol: 'Set',
     sortAsc: true,
-    prefs: {},
+    wishlists: {
+        any: { prefs: {}, prefsUpdated: {} },
+        hunter: { prefs: {}, prefsUpdated: {} },
+        titan: { prefs: {}, prefsUpdated: {} },
+        warlock: { prefs: {}, prefsUpdated: {} }
+    },
     mantledb: null,
     lastUpdated: 0,     // max edit timestamp across all fields (0 = never edited)
-    settingsUpdated: 0, // edit timestamp for tier5/keep/sort settings
-    prefsUpdated: {}    // per-armor-set edit timestamps, keyed like prefs
+    settingsUpdated: 0  // edit timestamp for tier5/keep/discardDupeOnly/wishlistClass/sort settings
 };
+
+// `state.prefs` / `state.prefsUpdated` remain as convenience aliases onto the
+// currently active class' bucket, so the bulk of core.js/ui.js (which only
+// ever needs to read/write the *active* wishlist) doesn't need to know about
+// classes at all. Sync/merge code below operates on `state.wishlists`
+// directly, since it must handle all classes at once, not just the active one.
+Object.defineProperty(state, 'prefs', {
+    get() { return state.wishlists[state.wishlistClass].prefs; },
+    set(v) { state.wishlists[state.wishlistClass].prefs = v; },
+    configurable: true,
+    enumerable: false
+});
+Object.defineProperty(state, 'prefsUpdated', {
+    get() { return state.wishlists[state.wishlistClass].prefsUpdated; },
+    set(v) { state.wishlists[state.wishlistClass].prefsUpdated = v; },
+    configurable: true,
+    enumerable: false
+});
 
 let syncRunning = false;
 let syncPending = false;
@@ -29,6 +58,47 @@ let claimingNamespace = false;
 
 // Thrown when the server rejects the key (401/403) — a permanent failure requiring a new namespace
 class MantleAuthError extends Error { }
+
+/**
+ * Ensure a wishlists object has a bucket for every known class.
+ * @param {object} wl - Candidate wishlists object (already class-keyed)
+ * @returns {object} Normalized { any, hunter, titan, warlock } wishlists
+ */
+const normalizeWishlists = (wl) => {
+    const result = {};
+    for (const cls of WISHLIST_CLASSES) {
+        result[cls] = {
+            prefs: (wl && wl[cls] && wl[cls].prefs) || {},
+            prefsUpdated: (wl && wl[cls] && wl[cls].prefsUpdated) || {}
+        };
+    }
+    return result;
+};
+
+/**
+ * Resolve a plain state-like object (parsed from localStorage, an import, or
+ * a MantleDB pull) into a normalized multi-class wishlists object. Objects
+ * already in the new shape pass through unchanged; legacy single-wishlist
+ * objects (flat `prefs`/`prefsUpdated`, no `wishlists`) are duplicated into
+ * every class so all wishlists start out identical — this is the one-time
+ * migration to per-class wishlists.
+ * @param {object} obj
+ * @returns {object} Normalized wishlists object
+ */
+const resolveWishlists = (obj) => {
+    if (obj && obj.wishlists) return normalizeWishlists(obj.wishlists);
+
+    const legacyPrefs = (obj && obj.prefs) || {};
+    const legacyPrefsUpdated = (obj && obj.prefsUpdated) || {};
+    const wishlists = {};
+    for (const cls of WISHLIST_CLASSES) {
+        wishlists[cls] = {
+            prefs: JSON.parse(JSON.stringify(legacyPrefs)),
+            prefsUpdated: JSON.parse(JSON.stringify(legacyPrefsUpdated))
+        };
+    }
+    return wishlists;
+};
 
 /**
  * Read state from localStorage with backwards compatibility
@@ -143,14 +213,11 @@ const mergeRemoteIntoLocal = (localState, remoteState) => {
     // Legacy remote blobs (pre per-field timestamps): treat the whole-state
     // lastUpdated as the timestamp for every field.
     const remoteSettingsTime = remoteState.settingsUpdated ?? remoteState.lastUpdated ?? 0;
-    const remotePrefsTimes = remoteState.prefsUpdated || {};
     const remoteLegacyTime = remoteState.lastUpdated ?? 0;
 
-    localState.prefsUpdated = localState.prefsUpdated || {};
-
-    // Settings (tier5 / keep / sort)
+    // Settings (tier5 / keep / discardDupeOnly / wishlistClass / sort)
     if (remoteSettingsTime > (localState.settingsUpdated || 0)) {
-        for (const f of ['tier5', 'keep', 'sortCol', 'sortAsc']) {
+        for (const f of ['tier5', 'keep', 'discardDupeOnly', 'wishlistClass', 'sortCol', 'sortAsc']) {
             if (remoteState[f] !== undefined && localState[f] !== remoteState[f]) {
                 localState[f] = remoteState[f];
                 changed = true;
@@ -159,24 +226,48 @@ const mergeRemoteIntoLocal = (localState, remoteState) => {
         localState.settingsUpdated = remoteSettingsTime;
     }
 
-    // Per-armor-set prefs
-    const remotePrefs = remoteState.prefs || {};
-    const allKeys = new Set([...Object.keys(localState.prefs || {}), ...Object.keys(remotePrefs)]);
-    for (const k of allKeys) {
-        const remoteTime = remotePrefsTimes[k] ?? (remotePrefs[k] !== undefined ? remoteLegacyTime : 0);
-        const localTime = localState.prefsUpdated[k] || 0;
-        if (remoteTime > localTime && remotePrefs[k] !== undefined) {
-            if (JSON.stringify(localState.prefs[k]) !== JSON.stringify(remotePrefs[k])) {
-                localState.prefs[k] = remotePrefs[k];
-                changed = true;
+    // Per-class, per-armor-set prefs. Legacy remote blobs (pre multi-class)
+    // only ever populated the 'any' class.
+    const remoteWishlists = remoteState.wishlists
+        ? normalizeWishlists(remoteState.wishlists)
+        : normalizeWishlists({ any: { prefs: remoteState.prefs || {}, prefsUpdated: remoteState.prefsUpdated || {} } });
+
+    localState.wishlists = localState.wishlists || {};
+
+    for (const cls of WISHLIST_CLASSES) {
+        localState.wishlists[cls] = localState.wishlists[cls] || { prefs: {}, prefsUpdated: {} };
+        const localBucket = localState.wishlists[cls];
+        const remoteBucket = remoteWishlists[cls];
+        const remotePrefsTimes = remoteBucket.prefsUpdated || {};
+        const remotePrefs = remoteBucket.prefs || {};
+
+        localBucket.prefs = localBucket.prefs || {};
+        localBucket.prefsUpdated = localBucket.prefsUpdated || {};
+
+        const allKeys = new Set([...Object.keys(localBucket.prefs), ...Object.keys(remotePrefs)]);
+        for (const k of allKeys) {
+            const remoteTime = remotePrefsTimes[k] ?? (remotePrefs[k] !== undefined ? remoteLegacyTime : 0);
+            const localTime = localBucket.prefsUpdated[k] || 0;
+            if (remoteTime > localTime && remotePrefs[k] !== undefined) {
+                if (JSON.stringify(localBucket.prefs[k]) !== JSON.stringify(remotePrefs[k])) {
+                    localBucket.prefs[k] = remotePrefs[k];
+                    changed = true;
+                }
+                localBucket.prefsUpdated[k] = remoteTime;
             }
-            localState.prefsUpdated[k] = remoteTime;
+        }
+    }
+
+    let maxPrefTime = 0;
+    for (const cls of WISHLIST_CLASSES) {
+        for (const t of Object.values(localState.wishlists[cls].prefsUpdated || {})) {
+            if (t > maxPrefTime) maxPrefTime = t;
         }
     }
 
     localState.lastUpdated = Math.max(
         localState.settingsUpdated || 0,
-        ...Object.values(localState.prefsUpdated),
+        maxPrefTime,
         localState.lastUpdated || 0
     );
 
@@ -212,28 +303,42 @@ const buildPushDelta = (localState, baseline) => {
     if ((localState.settingsUpdated || 0) > baseSettingsTime) {
         payload.tier5 = localState.tier5;
         payload.keep = localState.keep;
+        payload.discardDupeOnly = localState.discardDupeOnly;
+        payload.wishlistClass = localState.wishlistClass;
         payload.sortCol = localState.sortCol;
         payload.sortAsc = localState.sortAsc;
         payload.settingsUpdated = localState.settingsUpdated;
         hasAnything = true;
     }
 
-    const basePrefsTimes = baseline?.prefsUpdated || {};
-    const basePrefs = baseline?.prefs || {};
+    const baseWishlists = baseline?.wishlists
+        ? normalizeWishlists(baseline.wishlists)
+        : normalizeWishlists({ any: { prefs: baseline?.prefs || {}, prefsUpdated: baseline?.prefsUpdated || {} } });
     const baseLegacyTime = baseline?.lastUpdated ?? 0;
-    const prefsDelta = {};
-    const prefsUpdatedDelta = {};
-    for (const k in localState.prefsUpdated) {
-        const baseTime = basePrefsTimes[k] ?? (basePrefs[k] !== undefined ? baseLegacyTime : 0);
-        if (localState.prefsUpdated[k] > baseTime) {
-            prefsDelta[k] = localState.prefs[k];
-            prefsUpdatedDelta[k] = localState.prefsUpdated[k];
-            hasAnything = true;
+
+    const wishlistsDelta = {};
+    for (const cls of WISHLIST_CLASSES) {
+        const localBucket = (localState.wishlists && localState.wishlists[cls]) || { prefs: {}, prefsUpdated: {} };
+        const baseBucket = baseWishlists[cls];
+        const basePrefsTimes = baseBucket.prefsUpdated || {};
+        const basePrefs = baseBucket.prefs || {};
+
+        const prefsDelta = {};
+        const prefsUpdatedDelta = {};
+        for (const k in (localBucket.prefsUpdated || {})) {
+            const baseTime = basePrefsTimes[k] ?? (basePrefs[k] !== undefined ? baseLegacyTime : 0);
+            if (localBucket.prefsUpdated[k] > baseTime) {
+                prefsDelta[k] = localBucket.prefs[k];
+                prefsUpdatedDelta[k] = localBucket.prefsUpdated[k];
+                hasAnything = true;
+            }
+        }
+        if (Object.keys(prefsDelta).length) {
+            wishlistsDelta[cls] = { prefs: prefsDelta, prefsUpdated: prefsUpdatedDelta };
         }
     }
-    if (Object.keys(prefsDelta).length) {
-        payload.prefs = prefsDelta;
-        payload.prefsUpdated = prefsUpdatedDelta;
+    if (Object.keys(wishlistsDelta).length) {
+        payload.wishlists = wishlistsDelta;
     }
 
     if (!hasAnything) return null;
@@ -362,21 +467,27 @@ const loadState = () => {
             const parsed = JSON.parse(saved);
             state.tier5 = parsed.tier5 !== undefined ? parsed.tier5 : true;
             state.keep = parsed.keep !== undefined ? parsed.keep : true;
-            state.prefs = parsed.prefs || {};
+            state.discardDupeOnly = parsed.discardDupeOnly !== undefined ? parsed.discardDupeOnly : true;
+            state.wishlistClass = WISHLIST_CLASSES.includes(parsed.wishlistClass) ? parsed.wishlistClass : 'any';
             state.sortCol = parsed.sortCol || 'Set';
             state.sortAsc = parsed.sortAsc !== undefined ? parsed.sortAsc : true;
             state.mantledb = parsed.mantledb || null;
             state.lastUpdated = parsed.lastUpdated || 0;
             state.settingsUpdated = parsed.settingsUpdated || 0;
-            state.prefsUpdated = parsed.prefsUpdated || {};
+
             // Legacy state (pre per-field timestamps): stamp every existing
             // pref with the old whole-state timestamp so merges behave sanely
-            if (parsed.lastUpdated && !parsed.prefsUpdated) {
+            if (parsed.lastUpdated && !parsed.prefsUpdated && !parsed.wishlists) {
                 state.settingsUpdated = parsed.lastUpdated;
-                for (const k in state.prefs) {
-                    state.prefsUpdated[k] = parsed.lastUpdated;
+                parsed.prefsUpdated = {};
+                for (const k in (parsed.prefs || {})) {
+                    parsed.prefsUpdated[k] = parsed.lastUpdated;
                 }
             }
+
+            // Legacy state (pre multi-class wishlists): duplicate the single
+            // wishlist into every class so they all start out identical.
+            state.wishlists = resolveWishlists(parsed);
         }
     } catch (e) {
         console.error('Error loading state:', e);
@@ -413,7 +524,7 @@ const markPrefEdited = (key) => {
 };
 
 /**
- * Mark the shared settings (tier5/keep/sort) as edited now
+ * Mark the shared settings (tier5/keep/discardDupeOnly/wishlistClass/sort) as edited now
  */
 const markSettingsEdited = () => {
     state.settingsUpdated = nextEditTimestamp();
@@ -465,3 +576,51 @@ if (typeof window !== 'undefined') {
         if (state.mantledb) requestSync();
     }, 60000);
 }
+
+/**
+ * Reset the sync profile to a brand new one, creating a fresh namespace/key.
+ * The old profile is kept as a backup in localStorage in case you want to
+ * restore it later. Just reset again and restore the mantledb from backup.
+ * Also resets settings to defaults.
+ */
+const resetSyncProfile = async () => {
+    const oldProfile = state.mantledb;
+
+    // Backup the old profile so it can be restored later (before resetting!)
+    if (oldProfile) {
+        localStorage.setItem(STATE_BACKUP_KEY, JSON.stringify({
+            mantledb: oldProfile,
+            timestamp: Date.now(),
+            note: 'Old sync profile backup. Use this if you want to restore the old profile.'
+        }));
+    }
+
+    // Reset settings to defaults
+    state.tier5 = true;
+    state.keep = true;
+    state.discardDupeOnly = true;
+    state.wishlistClass = 'any';
+    state.sortCol = 'Set';
+    state.sortAsc = true;
+
+    // Reset all wishlists (clear all selections)
+    for (const cls of WISHLIST_CLASSES) {
+        state.wishlists[cls] = { prefs: {}, prefsUpdated: {} };
+    }
+
+    // Generate and claim a fresh namespace/key
+    const newNs = generateStorageKey();
+    const newKey = await claimMantleNamespace(newNs);
+
+    // Switch to the new profile immediately
+    state.mantledb = { ns: newNs, key: newKey };
+    state.lastUpdated = 0;
+    state.settingsUpdated = nextEditTimestamp();
+    persistState();
+
+    // Delay before syncing to ensure namespace is fully ready on MantleDB
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Now sync to push the reset state to the new profile
+    requestSync();
+};
