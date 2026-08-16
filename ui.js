@@ -577,8 +577,8 @@ const renderTable = () => {
             const valB = state.prefs[b.key].wanted ? 1 : 0;
             res = state.sortAsc ? valA - valB : valB - valA;
         } else if (state.sortCol === 'Tier') {
-            const valA = parseFloat(a['#'] ?? a.Rank ?? a['Rank']) || 999;
-            const valB = parseFloat(b['#'] ?? b.Rank ?? b['Rank']) || 999;
+            const valA = parseFloat(a['\#'] ?? a.Rank ?? a['Rank']) || 999;
+            const valB = parseFloat(b['\#'] ?? b.Rank ?? b['Rank']) || 999;
             res = state.sortAsc ? valA - valB : valB - valA;
         } else {
             const valA = (a.Set || '').toString().toLowerCase();
