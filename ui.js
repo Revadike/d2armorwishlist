@@ -764,17 +764,15 @@ const init = async () => {
         if (rawData.length > 0) applyLoadedState();
     });
 
+    let hashCount = 0;
     Papa.parse(CSV_URL, {
         download: true,
         header: true,
         transformHeader: (header) => {
-            const normalized = header.trim();
-            if (normalized === '#' || normalized === '\\#') {
-                transformHeader.hashCount = (transformHeader.hashCount || 0) + 1;
-                // Keep the first "#" as-is; rename the second to "Rank".
-                if (transformHeader.hashCount === 2) {
-                    return 'Rank';
-                }
+            const h = header.trim();
+            if (h === '#' || h === '\\#') {
+                hashCount++;
+                return hashCount === 2 ? 'Rank' : header;
             }
             return header;
         },
