@@ -577,8 +577,8 @@ const renderTable = () => {
             const valB = state.prefs[b.key].wanted ? 1 : 0;
             res = state.sortAsc ? valA - valB : valB - valA;
         } else if (state.sortCol === 'Tier') {
-            const valA = parseFloat(a['\#'] ?? a.Rank ?? a['Rank']) || 999;
-            const valB = parseFloat(b['\#'] ?? b.Rank ?? b['Rank']) || 999;
+            const valA = parseFloat(a.Rank) || 999;
+            const valB = parseFloat(b.Rank) || 999;
             res = state.sortAsc ? valA - valB : valB - valA;
         } else {
             const valA = (a.Set || '').toString().toLowerCase();
@@ -767,11 +767,20 @@ const init = async () => {
     Papa.parse(CSV_URL, {
         download: true,
         header: true,
+        transformHeader: (header) => {
+            const normalized = header.trim();
+            if (normalized === '#' || normalized === '\\#') {
+                transformHeader.hashCount = (transformHeader.hashCount || 0) + 1;
+                // Keep the first "#" as-is; rename the second to "Rank".
+                if (transformHeader.hashCount === 2) {
+                    return 'Rank';
+                }
+            }
+            return header;
+        },
         complete: (results) => {
             rawData = results.data.filter(r => r.Set && r.Set.trim() !== '');
             processData();
-            // Render only — loading the page is not a user edit, so nothing
-            // is stamped or pushed here.
             optimizeSlots();
             renderTable();
             updateQueries();
