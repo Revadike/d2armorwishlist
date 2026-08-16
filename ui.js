@@ -764,20 +764,31 @@ const init = async () => {
         if (rawData.length > 0) applyLoadedState();
     });
 
-    let hashCount = 0;
     Papa.parse(CSV_URL, {
         download: true,
         header: true,
-        transformHeader: (header) => {
-            const h = header.trim();
-            if (h === '#' || h === '\\#') {
-                hashCount++;
-                return hashCount === 2 ? 'Rank' : header;
-            }
-            return header;
-        },
+        transformHeader: (header) => String(header).trim(),
         complete: (results) => {
-            rawData = results.data.filter(r => r.Set && r.Set.trim() !== '');
+            rawData = (results.data || [])
+                .filter(r => r.Set && r.Set.trim() !== '')
+                .map(row => {
+                    const normalized = {};
+                    Object.entries(row).forEach(([key, value]) => {
+                        let cleanKey = String(key).trim();
+                        // Papa auto-renames duplicate headers like '#_1' when a CSV has
+                        // two "#" columns. The second hash is the real rank field, so map
+                        // that duplicate key back to Rank while leaving the row counter as '#'.
+                        if (cleanKey.startsWith('#') && cleanKey !== '#') {
+                            cleanKey = 'Rank';
+                        }
+                        normalized[cleanKey] = value;
+                    });
+                    // Preserve the Tier field if Papa leaves it with trailing whitespace.
+                    if (normalized.Tier === undefined && normalized['Tier '] !== undefined) {
+                        normalized.Tier = normalized['Tier '];
+                    }
+                    return normalized;
+                });
             processData();
             optimizeSlots();
             renderTable();
