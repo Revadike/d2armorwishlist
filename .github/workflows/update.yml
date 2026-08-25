@@ -18,8 +18,16 @@ jobs:
 
       - name: Fetch CSV
         run: |
-          curl -L "https://docs.google.com/spreadsheets/d/1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY/gviz/tq?tqx=out:csv&sheet=Set+Bonuses" \
-          -o data.csv
+          curl -fsSL "https://docs.google.com/spreadsheets/d/1JM-0SlxVDAi-C6rGVlLxa-J1WGewEeL8Qvq4htWZHhY/gviz/tq?tqx=out:csv&sheet=Set+Bonuses" \
+          -o data.csv.tmp
+
+          if grep -qiE '<!DOCTYPE|<html|Too Many Requests' data.csv.tmp; then
+            echo "::error::Fetched content is not valid CSV (sheet likely unreachable). Keeping existing data.csv."
+            rm -f data.csv.tmp
+            exit 1
+          fi
+
+          mv data.csv.tmp data.csv
 
       - name: Commit changes
         run: |
